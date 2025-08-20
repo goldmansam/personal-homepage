@@ -1,6 +1,6 @@
 :root{
   --cluster-size: 720px;     /* bigger canvas so orbits never clip */
-  --center-size: 280px;      /* MUCH larger center circle */
+  --center-size: 280px;      /* large center circle */
   --petal-size: 84px;        /* surrounding circles */
   --gap: 10px;               /* gap from center to resting petals */
   --ease: cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -21,10 +21,9 @@ body{
 .cluster{
   position:relative;
   width:var(--cluster-size); height:var(--cluster-size);
-  /* no top margin; it's centered by the body flex */
 }
 
-/* White center: minimal (no border), larger */
+/* White center: minimal (no border) */
 .center{
   position:absolute; top:50%; left:50%;
   width:var(--center-size); height:var(--center-size);
@@ -34,17 +33,17 @@ body{
   z-index:2; pointer-events:none;
 }
 
-/* Name inside the center, responsive sizing so it fits nicely */
+/* Name / later the cycling section titles */
 .center-label{
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
   width:calc(var(--center-size) - 36px); text-align:center;
 
-  /* responsive font size based on circle size */
+  /* responsive sizing so it fits inside the big circle nicely */
   font-size: clamp(1.25rem, calc(var(--center-size) * 0.18), 3.25rem);
   line-height:1.15;
   z-index:3;
   transition:opacity .6s var(--ease), filter .6s var(--ease);
-  color:#111; /* fallback if gradient text unsupported (used later after unlock) */
+  color:#111; /* fallback if gradient text unsupported */
 }
 
 /* Hide the construction ring for a clean “planet” look */
@@ -83,7 +82,7 @@ body{
   100%{ box-shadow:0 0 0 0 rgba(0,0,0,0) }
 }
 
-/* Pleasant gradients for petals */
+/* Petal gradients */
 .g1{ background:linear-gradient(135deg,#ff6b6b,#ffb199) }
 .g2{ background:linear-gradient(135deg,#4facfe,#00f2fe) }
 .g3{ background:linear-gradient(135deg,#43e97b,#38f9d7) }
@@ -93,7 +92,7 @@ body{
 .g7{ background:linear-gradient(135deg,#ffecd2,#fcb69f) }
 .g8{ background:linear-gradient(135deg,#cfd9df,#e2ebf0) }
 
-/* Gradient text support (used after unlock for Work/About/Contact) */
+/* Gradient text support (clips the background through the text) */
 @supports ((-webkit-background-clip: text) or (background-clip: text)){
   .gradient-text{
     -webkit-background-clip: text;  /* Safari/Chrome */
@@ -101,8 +100,78 @@ body{
     -webkit-text-fill-color: transparent;
     color: transparent;
   }
+  /* Initial title gradient using the petal palette */
+  .title-gradient{
+    background-image: linear-gradient(
+      135deg,
+      #ff6b6b, #ffb199, /* red → peach */
+      #4facfe, #00f2fe, /* blue → cyan */
+      #43e97b, #38f9d7, /* green → teal */
+      #ff9a9e, #fad0c4, /* pink → blush */
+      #fddb92, #d1fdff, /* yellow → ice */
+      #fbc2eb, #a6c1ee  /* rose → periwinkle */
+    );
+  }
 }
 
+/* ==== Vibrant Aurora + Orbit Rings background ==== */
+
+/* VIBRANT AURORA (behind everything) */
+body::before{
+  content:"";
+  position: fixed;
+  inset: -20% -10%;            /* slightly larger than viewport for drift */
+  pointer-events: none;
+  z-index: 0;
+
+  /* Saturated, bright blobs; softened with blur */
+  background:
+    radial-gradient(55% 45% at 25% 30%, rgba( 79,172,254,0.28), transparent 60%), /* blue */
+    radial-gradient(45% 40% at 75% 25%, rgba(255, 94,247,0.24), transparent 60%), /* magenta */
+    radial-gradient(50% 45% at 60% 75%, rgba( 67,233,123,0.22), transparent 60%), /* green */
+    radial-gradient(40% 35% at 40% 65%, rgba(255,210,112,0.18), transparent 60%); /* amber */
+  filter: blur(60px) saturate(160%);
+  animation:
+    auroraDrift 34s ease-in-out infinite alternate,
+    auroraHue   90s linear       infinite;
+}
+
+/* FAINT ORBIT RINGS (inside the cluster) */
+.cluster::before{
+  content:"";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;                  /* behind center/petals but above body bg */
+  border-radius: 50%;
+  opacity: .55;
+  background:
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      rgba(0,0,0,0.05) 0 1px,
+      transparent 1px 28px
+    );
+  animation: ringsSpin 90s linear infinite;
+}
+
+/* Keyframes for aurora movement and color cycling */
+@keyframes auroraDrift {
+  from { transform: translate3d(-3%,-2%,0) rotate(0.3deg); }
+  to   { transform: translate3d( 3%, 2%,0) rotate(-0.3deg); }
+}
+@keyframes auroraHue {
+  from { filter: blur(60px) saturate(160%) hue-rotate(0deg); }
+  to   { filter: blur(60px) saturate(160%) hue-rotate(360deg); }
+}
+
+/* Slow spin for the rings */
+@keyframes ringsSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Respect reduced motion */
 @media (prefers-reduced-motion: reduce){
   .petal,.pulse-btn{ transition:none !important; animation:none !important }
+  body::before, .cluster::before { animation: none !important; }
 }

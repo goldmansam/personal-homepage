@@ -3,11 +3,11 @@ const centerEl = document.getElementById('center');
 const petals = Array.from(document.querySelectorAll('.petal'));
 const centerLabel = document.getElementById('centerLabel');
 
-// geometry
-const clusterSize = cluster.getBoundingClientRect().width; // 720
+// geometry based on rendered sizes
+const clusterSize = cluster.getBoundingClientRect().width; // ~720
 const cx = clusterSize/2, cy = clusterSize/2;
-const centerR = centerEl.getBoundingClientRect().width / 2;   // 140 (bigger)
-const petalR  = petals[0].getBoundingClientRect().width / 2;  // 42
+const centerR = centerEl.getBoundingClientRect().width / 2;   // ~140
+const petalR  = petals[0].getBoundingClientRect().width / 2;  // ~42
 const gap = 10;
 
 const ringRadius = centerR + petalR + gap; // resting radius based on larger center
@@ -62,6 +62,9 @@ function startOrbit(){
     rafId = requestAnimationFrame(loop);
   }
   if (!rafId) rafId = requestAnimationFrame(loop);
+
+  // switch from title gradient to cycling section labels
+  centerLabel.classList.remove('title-gradient'); // use per-section gradients next
 
   // center label cycle: Work → About → Contact (longer dwell)
   const names = ['Work','About','Contact'];
