@@ -1,73 +1,103 @@
-body {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  min-height: 100vh;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
-  background: #fafafa;
+:root{
+  --cluster-size: 560px;
+  --center-size: 140px;   /* white center circle diameter */
+  --petal-size: 84px;     /* smaller colored circles */
+  --gap: 10px;            /* gap from center to resting petals */
+  --ease: cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-header {
-  text-align: center;
-  margin-top: 2rem;
-}
-header h1 { margin: 0; font-size: 2.5rem; }
-header p  { margin: 0; font-size: 1.5rem; color: #555; }
+*{ box-sizing:border-box }
 
-/* Center circle */
-.center-circle {
-  position: relative; /* anchor for absolute-positioned petals + arrow */
-  margin-top: 5rem;
-  width: 140px; height: 140px; border-radius: 50%;
-  background: white;
-  border: 3px solid #ccc;            /* arrow matches this color */
-  display: flex; align-items: center; justify-content: center;
-  font-size: 2rem; font-weight: bold; color: #333; text-align: center;
-  overflow: visible; /* allow petals to sit outside the circle */
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  background:#fafafa; color:#000;
+  display:flex; flex-direction:column; align-items:center; min-height:100dvh;
 }
 
-/* Petals (outer colored circles) */
-.petal {
-  position: absolute;
-  width: 90px; height: 90px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: white; font-weight: bold; cursor: pointer;
-  opacity: 0.82; mix-blend-mode: multiply;
-  transition: transform 0.6s ease; /* transform used if you add hover effects */
+header{ text-align:center; margin-top:2rem; }
+header h1{ margin:0; font-size:2.4rem; font-weight:600; }
+
+.cluster{
+  position:relative; width:var(--cluster-size); height:var(--cluster-size);
+  margin-top:4.5rem;
 }
 
-/* Arrow guide — styled like the center circle */
-.arrow {
-  position: absolute;
-  width: 0; height: 0;
-  border-left: 15px solid transparent;
-  border-right: 15px solid transparent;
-  border-bottom: 30px solid #ccc; /* same tone as .center-circle border */
-  top: 50%; left: 50%;
-  transform-origin: center center;
-  transform: translate(-50%, -100%);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.4s ease;
+/* White center: minimal (no border) */
+.center{
+  position:absolute; top:50%; left:50%;
+  width:var(--center-size); height:var(--center-size);
+  transform:translate(-50%,-50%); border-radius:50%;
+  background:#fff; border:none;
+  box-shadow:0 10px 30px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.6);
+  z-index:2; pointer-events:none;
 }
 
-/* Big gradient titles post-unlock */
-.gradient-text {
-  font-size: 3rem;           /* doubled */
-  font-weight: bold;
-  text-align: center;
-  color: #222;               /* fallback solid text color */
+.center-label{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:calc(var(--center-size) - 24px); text-align:center;
+  font-size:2rem; z-index:3;
+  transition:opacity .6s var(--ease), filter .6s var(--ease);
+  color:#111; /* fallback if gradient text unsupported */
 }
 
-/* Use gradient text where supported */
-@supports ((-webkit-background-clip: text) or (background-clip: text)) {
-  .gradient-text {
-    background: linear-gradient(45deg, red, orange, yellow, green, blue, pink);
+/* Hide the construction ring for a clean “planet” look */
+.ring{ display:none; }
+
+.petal{
+  position:absolute; top:50%; left:50%;
+  width:var(--petal-size); height:var(--petal-size);
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  transition: transform .85s var(--ease);
+  opacity:0;
+}
+
+.dot{
+  width:100%; height:100%; border-radius:50%;
+  box-shadow:0 6px 18px rgba(0,0,0,.16);
+  opacity:.82; mix-blend-mode:multiply;
+}
+
+/* Glow button that guides the next click */
+.pulse-btn{
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:22px; height:22px; border-radius:50%;
+  background:#fff; border:2px solid #ddd;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,.9));
+  pointer-events:none; opacity:0; z-index:2;
+}
+.pulse-btn.active{
+  pointer-events:auto; opacity:1; cursor:pointer;
+  animation:pulse 1.5s ease-out infinite;
+}
+@keyframes pulse{
+  0%{ box-shadow:0 0 0 0 rgba(0,0,0,.15) }
+  70%{ box-shadow:0 0 0 16px rgba(0,0,0,0) }
+  100%{ box-shadow:0 0 0 0 rgba(0,0,0,0) }
+}
+
+/* Pleasant gradients for petals */
+.g1{ background:linear-gradient(135deg,#ff6b6b,#ffb199) }
+.g2{ background:linear-gradient(135deg,#4facfe,#00f2fe) }
+.g3{ background:linear-gradient(135deg,#43e97b,#38f9d7) }
+.g4{ background:linear-gradient(135deg,#ff9a9e,#fad0c4) }
+.g5{ background:linear-gradient(135deg,#fddb92,#d1fdff) }
+.g6{ background:linear-gradient(135deg,#fbc2eb,#a6c1ee) }
+.g7{ background:linear-gradient(135deg,#ffecd2,#fcb69f) }
+.g8{ background:linear-gradient(135deg,#cfd9df,#e2ebf0) }
+
+/* Gradient text support with standard + webkit (fixes the VS Code hint) */
+@supports ((-webkit-background-clip: text) or (background-clip: text)){
+  .gradient-text{
+    background: linear-gradient(135deg,#ff6b6b,#ffb199);
     -webkit-background-clip: text;  /* Safari/Chrome */
     background-clip: text;          /* Standard */
-    -webkit-text-fill-color: transparent; /* Safari */
-    color: transparent;             /* Standard */
+    -webkit-text-fill-color: transparent;
+    color: transparent;
   }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .petal,.pulse-btn{ transition:none !important; animation:none !important }
 }
