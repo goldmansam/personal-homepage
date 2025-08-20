@@ -55,10 +55,19 @@ header p  { margin: 0; font-size: 1.5rem; color: #555; }
 
 /* Big gradient titles post-unlock */
 .gradient-text {
-  background: linear-gradient(45deg, red, orange, yellow, green, blue, pink);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-size: 3rem; /* doubled */
+  font-size: 3rem;           /* doubled */
   font-weight: bold;
   text-align: center;
+  color: #222;               /* fallback solid text color */
+}
+
+/* Use gradient text where supported */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .gradient-text {
+    background: linear-gradient(45deg, red, orange, yellow, green, blue, pink);
+    -webkit-background-clip: text;  /* Safari/Chrome */
+    background-clip: text;          /* Standard */
+    -webkit-text-fill-color: transparent; /* Safari */
+    color: transparent;             /* Standard */
+  }
 }
