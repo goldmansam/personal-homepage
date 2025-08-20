@@ -1,91 +1,41 @@
-/* Reset default margins */
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.6;
-  background-color: #fefefe;
-  color: #333;
+  font-family: sans-serif;
+  color: #0e1a14;
+  background: linear-gradient(#d6f0ff, #b7e1c5);
+  animation: skyShift 20s ease-in-out infinite alternate;
 }
 
-/* Header styling */
 header {
-  background-color: #1e3a8a;
-  color: white;
-  padding: 2rem;
   text-align: center;
-}
-
-header h1 {
-  margin: 0 0 0.5rem;
-  font-size: 2.5rem;
-}
-
-header p {
-  font-size: 1.2rem;
-}
-
-/* Section styling */
-section {
   padding: 2rem;
-  border-bottom: 1px solid #e0e0e0;
 }
 
-/* Alternate background colors for variety */
-section:nth-of-type(odd) {
-  background-color: #f9fafb;
+.link-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  padding: 2rem;
 }
 
-section:nth-of-type(even) {
-  background-color: #ffffff;
-}
-
-/* Form styling */
-form {
-  margin-top: 1rem;
-}
-
-form p {
-  margin-bottom: 0.5rem;
-  font-weight: bold;
-}
-
-label {
+.link-grid a {
   display: block;
-  margin-bottom: 0.5rem;
-  cursor: pointer;
-}
-
-button[type="submit"] {
-  margin-top: 1rem;
-  background-color: #1e3a8a;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  font-size: 1rem;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-button[type="submit"]:hover {
-  background-color: #3749a6;
-}
-
-/* Image styling */
-img {
-  margin-top: 1rem;
-  max-width: 100%;
-  height: auto;
-  border-radius: 10px;
-}
-
-/* Link styling */
-a {
-  display: inline-block;
-  margin-top: 1rem;
-  color: #1e3a8a;
+  text-align: center;
+  padding: 1.5rem;
+  background: rgba(255,255,255,0.7);
+  border-radius: 1rem;
   text-decoration: none;
+  color: inherit;
+  transition: transform 0.3s ease, background 0.3s ease;
 }
 
-a:hover {
-  text-decoration: underline;
+.link-grid a:hover {
+  transform: translateY(-5px);
+  background: rgba(255,255,255,0.9);
+}
+
+/* Animation: slow gradient change */
+@keyframes skyShift {
+  from { background: linear-gradient(#d6f0ff, #b7e1c5); }
+  to   { background: linear-gradient(#0b1620, #23453a); }
 }
