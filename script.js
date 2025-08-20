@@ -4,13 +4,13 @@ const petals = Array.from(document.querySelectorAll('.petal'));
 const centerLabel = document.getElementById('centerLabel');
 
 // geometry
-const clusterSize = cluster.getBoundingClientRect().width;
+const clusterSize = cluster.getBoundingClientRect().width; // 720
 const cx = clusterSize/2, cy = clusterSize/2;
-const centerR = centerEl.getBoundingClientRect().width / 2;   // 70
+const centerR = centerEl.getBoundingClientRect().width / 2;   // 140 (bigger)
 const petalR  = petals[0].getBoundingClientRect().width / 2;  // 42
 const gap = 10;
 
-const ringRadius = centerR + petalR + gap; // resting radius
+const ringRadius = centerR + petalR + gap; // resting radius based on larger center
 
 // helpers
 function petalTransform(radius, angle){
@@ -30,7 +30,7 @@ petals.forEach((p, i) => {
   p.style.opacity = 1;
 });
 
-// varied outward distances (planet rings)
+// varied outward distances (planet rings) — tuned for bigger center & 720px cluster
 const outwardOffsets = [60, 85, 110, 75, 100, 90, 120, 70]; // px beyond ringRadius
 const orbitR = outwardOffsets.map(off => ringRadius + off);
 

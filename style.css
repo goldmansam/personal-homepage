@@ -1,8 +1,8 @@
 :root{
-  --cluster-size: 560px;
-  --center-size: 140px;   /* white center circle diameter */
-  --petal-size: 84px;     /* smaller colored circles */
-  --gap: 10px;            /* gap from center to resting petals */
+  --cluster-size: 720px;     /* bigger canvas so orbits never clip */
+  --center-size: 280px;      /* MUCH larger center circle */
+  --petal-size: 84px;        /* surrounding circles */
+  --gap: 10px;               /* gap from center to resting petals */
   --ease: cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
@@ -12,18 +12,19 @@ body{
   margin:0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   background:#fafafa; color:#000;
-  display:flex; flex-direction:column; align-items:center; min-height:100dvh;
-}
+  min-height:100vh;
 
-header{ text-align:center; margin-top:2rem; }
-header h1{ margin:0; font-size:2.4rem; font-weight:600; }
+  /* center the whole cluster vertically & horizontally */
+  display:flex; align-items:center; justify-content:center;
+}
 
 .cluster{
-  position:relative; width:var(--cluster-size); height:var(--cluster-size);
-  margin-top:4.5rem;
+  position:relative;
+  width:var(--cluster-size); height:var(--cluster-size);
+  /* no top margin; it's centered by the body flex */
 }
 
-/* White center: minimal (no border) */
+/* White center: minimal (no border), larger */
 .center{
   position:absolute; top:50%; left:50%;
   width:var(--center-size); height:var(--center-size);
@@ -33,12 +34,17 @@ header h1{ margin:0; font-size:2.4rem; font-weight:600; }
   z-index:2; pointer-events:none;
 }
 
+/* Name inside the center, responsive sizing so it fits nicely */
 .center-label{
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-  width:calc(var(--center-size) - 24px); text-align:center;
-  font-size:2rem; z-index:3;
+  width:calc(var(--center-size) - 36px); text-align:center;
+
+  /* responsive font size based on circle size */
+  font-size: clamp(1.25rem, calc(var(--center-size) * 0.18), 3.25rem);
+  line-height:1.15;
+  z-index:3;
   transition:opacity .6s var(--ease), filter .6s var(--ease);
-  color:#111; /* fallback if gradient text unsupported */
+  color:#111; /* fallback if gradient text unsupported (used later after unlock) */
 }
 
 /* Hide the construction ring for a clean “planet” look */
@@ -87,10 +93,9 @@ header h1{ margin:0; font-size:2.4rem; font-weight:600; }
 .g7{ background:linear-gradient(135deg,#ffecd2,#fcb69f) }
 .g8{ background:linear-gradient(135deg,#cfd9df,#e2ebf0) }
 
-/* Gradient text support with standard + webkit (fixes the VS Code hint) */
+/* Gradient text support (used after unlock for Work/About/Contact) */
 @supports ((-webkit-background-clip: text) or (background-clip: text)){
   .gradient-text{
-    background: linear-gradient(135deg,#ff6b6b,#ffb199);
     -webkit-background-clip: text;  /* Safari/Chrome */
     background-clip: text;          /* Standard */
     -webkit-text-fill-color: transparent;
