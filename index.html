@@ -7,16 +7,20 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Minimal layout: no header -->
+  <!-- Starry layer (stars + sparks live inside here) -->
+  <div class="starry-background" aria-hidden="true"></div>
 
+  <!-- Enclosing outer ring -->
+  <div class="enclosing-ring" aria-hidden="true"></div>
+
+  <!-- Main interactive cluster -->
   <div class="cluster" id="cluster">
-    <div class="ring" id="ring" aria-hidden="true"></div>
     <div class="center" id="center" aria-hidden="true"></div>
 
     <!-- Start with your name as gradient text -->
     <div class="center-label gradient-text title-gradient" id="centerLabel">Samuel Goldman</div>
 
-    <!-- Petals: smaller circles; each has a hidden glow button that activates in order -->
+    <!-- Petals with glow buttons (click order guided clockwise) -->
     <div class="petal" data-i="0"><div class="dot g1"></div><button class="pulse-btn" aria-label="Start"></button></div>
     <div class="petal" data-i="1"><div class="dot g2"></div><button class="pulse-btn" aria-label="Next"></button></div>
     <div class="petal" data-i="2"><div class="dot g3"></div><button class="pulse-btn" aria-label="Next"></button></div>

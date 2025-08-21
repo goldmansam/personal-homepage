@@ -1,5 +1,5 @@
 :root{
-  --cluster-size: 720px;     /* bigger canvas so orbits never clip */
+  --cluster-size: 720px;     /* canvas for the orbits */
   --center-size: 280px;      /* large center circle */
   --petal-size: 84px;        /* surrounding circles */
   --gap: 10px;               /* gap from center to resting petals */
@@ -14,16 +14,19 @@ body{
   background:#fafafa; color:#000;
   min-height:100vh;
 
-  /* center the whole cluster vertically & horizontally */
+  /* center the interactive cluster */
   display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
 }
 
+/* Main cluster sits above background layers */
 .cluster{
   position:relative;
   width:var(--cluster-size); height:var(--cluster-size);
+  z-index: 2;
 }
 
-/* White center: minimal (no border) */
+/* White center (no border) */
 .center{
   position:absolute; top:50%; left:50%;
   width:var(--center-size); height:var(--center-size);
@@ -33,12 +36,10 @@ body{
   z-index:2; pointer-events:none;
 }
 
-/* Name / later the cycling section titles */
+/* Center label (name → later Work/About/Contact) */
 .center-label{
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
   width:calc(var(--center-size) - 36px); text-align:center;
-
-  /* responsive sizing so it fits inside the big circle nicely */
   font-size: clamp(1.25rem, calc(var(--center-size) * 0.18), 3.25rem);
   line-height:1.15;
   z-index:3;
@@ -46,9 +47,7 @@ body{
   color:#111; /* fallback if gradient text unsupported */
 }
 
-/* Hide the construction ring for a clean “planet” look */
-.ring{ display:none; }
-
+/* Petals */
 .petal{
   position:absolute; top:50%; left:50%;
   width:var(--petal-size); height:var(--petal-size);
@@ -57,14 +56,13 @@ body{
   transition: transform .85s var(--ease);
   opacity:0;
 }
-
 .dot{
   width:100%; height:100%; border-radius:50%;
   box-shadow:0 6px 18px rgba(0,0,0,.16);
   opacity:.82; mix-blend-mode:multiply;
 }
 
-/* Glow button that guides the next click */
+/* Glow guide button */
 .pulse-btn{
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
   width:22px; height:22px; border-radius:50%;
@@ -92,86 +90,114 @@ body{
 .g7{ background:linear-gradient(135deg,#ffecd2,#fcb69f) }
 .g8{ background:linear-gradient(135deg,#cfd9df,#e2ebf0) }
 
-/* Gradient text support (clips the background through the text) */
+/* Gradient text support + initial name gradient */
 @supports ((-webkit-background-clip: text) or (background-clip: text)){
   .gradient-text{
-    -webkit-background-clip: text;  /* Safari/Chrome */
-    background-clip: text;          /* Standard */
+    -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
   }
-  /* Initial title gradient using the petal palette */
   .title-gradient{
     background-image: linear-gradient(
       135deg,
-      #ff6b6b, #ffb199, /* red → peach */
-      #4facfe, #00f2fe, /* blue → cyan */
-      #43e97b, #38f9d7, /* green → teal */
-      #ff9a9e, #fad0c4, /* pink → blush */
-      #fddb92, #d1fdff, /* yellow → ice */
-      #fbc2eb, #a6c1ee  /* rose → periwinkle */
+      #ff6b6b, #ffb199,
+      #4facfe, #00f2fe,
+      #43e97b, #38f9d7,
+      #ff9a9e, #fad0c4,
+      #fddb92, #d1fdff,
+      #fbc2eb, #a6c1ee
     );
   }
 }
 
 /* ==== Vibrant Aurora + Orbit Rings background ==== */
 
-/* VIBRANT AURORA (behind everything) */
+/* Aurora wash behind everything */
 body::before{
   content:"";
   position: fixed;
-  inset: -20% -10%;            /* slightly larger than viewport for drift */
+  inset: -20% -10%;
   pointer-events: none;
   z-index: 0;
-
-  /* Saturated, bright blobs; softened with blur */
   background:
-    radial-gradient(55% 45% at 25% 30%, rgba( 79,172,254,0.28), transparent 60%), /* blue */
-    radial-gradient(45% 40% at 75% 25%, rgba(255, 94,247,0.24), transparent 60%), /* magenta */
-    radial-gradient(50% 45% at 60% 75%, rgba( 67,233,123,0.22), transparent 60%), /* green */
-    radial-gradient(40% 35% at 40% 65%, rgba(255,210,112,0.18), transparent 60%); /* amber */
+    radial-gradient(55% 45% at 25% 30%, rgba( 79,172,254,0.28), transparent 60%),
+    radial-gradient(45% 40% at 75% 25%, rgba(255, 94,247,0.24), transparent 60%),
+    radial-gradient(50% 45% at 60% 75%, rgba( 67,233,123,0.22), transparent 60%),
+    radial-gradient(40% 35% at 40% 65%, rgba(255,210,112,0.18), transparent 60%);
   filter: blur(60px) saturate(160%);
   animation:
     auroraDrift 34s ease-in-out infinite alternate,
     auroraHue   90s linear       infinite;
 }
 
-/* FAINT ORBIT RINGS (inside the cluster) */
+/* Concentric orbit rings inside the cluster */
 .cluster::before{
   content:"";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;                  /* behind center/petals but above body bg */
-  border-radius: 50%;
+  position: absolute; inset: 0;
+  pointer-events: none; z-index: 0; border-radius: 50%;
   opacity: .55;
   background:
-    repeating-radial-gradient(
-      circle at 50% 50%,
-      rgba(0,0,0,0.05) 0 1px,
-      transparent 1px 28px
-    );
+    repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,0.05) 0 1px, transparent 1px 28px);
   animation: ringsSpin 90s linear infinite;
 }
 
-/* Keyframes for aurora movement and color cycling */
-@keyframes auroraDrift {
-  from { transform: translate3d(-3%,-2%,0) rotate(0.3deg); }
-  to   { transform: translate3d( 3%, 2%,0) rotate(-0.3deg); }
-}
-@keyframes auroraHue {
-  from { filter: blur(60px) saturate(160%) hue-rotate(0deg); }
-  to   { filter: blur(60px) saturate(160%) hue-rotate(360deg); }
+/* Enclosing ring around the whole layout */
+.enclosing-ring{
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90vmin; height: 90vmin;
+  border: 2px dashed rgba(255,255,255,0.22);
+  border-radius: 50%;
+  z-index: 1;
+  pointer-events:none;
+  animation: rotate-ring 30s linear infinite;
 }
 
-/* Slow spin for the rings */
-@keyframes ringsSpin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+@keyframes rotate-ring { from { transform: translate(-50%,-50%) rotate(0deg) } to { transform: translate(-50%,-50%) rotate(360deg) } }
+@keyframes auroraDrift { from { transform: translate3d(-3%,-2%,0) rotate(0.3deg) } to { transform: translate3d(3%,2%,0) rotate(-0.3deg) } }
+@keyframes auroraHue   { from { filter: blur(60px) saturate(160%) hue-rotate(0deg) } to { filter: blur(60px) saturate(160%) hue-rotate(360deg) } }
+@keyframes ringsSpin   { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+
+/* ==== Starfield + Sparks (behind cluster, above aurora) ==== */
+
+.starry-background{
+  position: fixed; inset: 0;
+  z-index: 1;   /* above aurora (0), below cluster (2) */
+  pointer-events: none;
+}
+
+.star{
+  position: absolute;
+  width: 2px; height: 2px;
+  border-radius: 50%;
+  background: white;
+  opacity: 0.8;
+  animation: twinkle 3s infinite ease-in-out;
+}
+@keyframes twinkle{
+  0%,100% { opacity:.25; transform: scale(0.6); }
+  50%     { opacity:.95; transform: scale(1.25); }
+}
+
+.spark{
+  position: absolute;
+  width: 2px; height: 2px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,1), rgba(255,255,255,0));
+  opacity: 0.9;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,.9));
+  pointer-events:none;
+  animation: fly 5s linear forwards;
+}
+@keyframes fly{
+  0%   { transform: translate(0,0)   scale(0.6); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translate(100vw, -100vh) scale(1.6); opacity: 0; }
 }
 
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce){
   .petal,.pulse-btn{ transition:none !important; animation:none !important }
-  body::before, .cluster::before { animation: none !important; }
+  body::before, .cluster::before, .enclosing-ring { animation: none !important; }
 }
