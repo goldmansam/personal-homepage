@@ -51,7 +51,7 @@ body{
 }
 .center-label:focus-visible{ outline: 2px solid rgba(0,0,0,.4); border-radius:8px }
 
-/* Petals */
+/* Petals (in cluster/home) */
 .petal{
   position:absolute; top:50%; left:50%;
   width:var(--petal-size); height:var(--petal-size);
@@ -166,7 +166,7 @@ body.reading::before{
 
 /* ==== Overlay (section view) ==== */
 .overlay{
-  position: fixed; inset: 0; z-index: 5;
+  position: fixed; inset: 0; z-index: 5; /* overlay below petal-layer (z:7) */
   background:#fff;
   clip-path: circle(var(--clipR, 0px) at var(--clipX, 50%) var(--clipY, 50%));
   transition: clip-path 800ms var(--ease);
@@ -198,9 +198,15 @@ body.reading::before{
   overflow:auto;
 }
 
-/* Petals become fixed when on perimeter */
+/* NEW: topmost petal layer that hosts petals during transitions/section mode */
+.petal-layer{
+  position: fixed; inset: 0;
+  z-index: 7;                 /* above overlay */
+  pointer-events: none;       /* don't block clicks while reading */
+}
+/* When petals are inside petal-layer, use absolute positioning relative to it */
 .petal.perimeter{
-  position: fixed; top:0; left:0; z-index: 6;
+  position: absolute;         /* absolute inside fixed petal-layer */
   will-change: transform;
 }
 
