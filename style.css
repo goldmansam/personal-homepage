@@ -7,15 +7,16 @@
 
   --orbit-rgb: 0,0,0;
   --orbit-line-alpha: .05;
-  --orbit-text-alpha: .75;
+  --text: #bfc3c9; /* light gray for all text */
 }
 
 *{ box-sizing:border-box }
 
 body{
   margin:0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  background:#fafafa; color:#000;
+  font-family: "Sora", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  background:#fafafa;
+  color:var(--text);
   min-height:100vh;
   display:flex; align-items:center; justify-content:center;
   overflow:hidden;
@@ -48,9 +49,9 @@ body{
   z-index:3;
   transition:opacity .6s var(--ease), filter .6s var(--ease), transform .2s var(--ease);
   background:none; border:0; padding:0; cursor:pointer;
-  color:#bfc3c9; /* light gray for "Samuel Goldman" on load */
+  color:var(--text);
 }
-.center-label:focus-visible{ outline: 2px solid rgba(0,0,0,.4); border-radius:8px }
+.center-label:focus-visible{ outline: 2px solid rgba(0,0,0,.2); border-radius:8px }
 
 /* Petals (home: transform-based positioning) */
 .petal{
@@ -65,11 +66,11 @@ body{
   width:100%; height:100%; border-radius:50%;
   box-shadow:0 6px 18px rgba(0,0,0,.16);
   opacity:.82; mix-blend-mode:multiply;
-  transition: transform .25s ease, box-shadow .25s ease; /* micro-interaction */
+  transition: transform .25s ease, box-shadow .25s ease;
 }
 .petal:hover .dot{ transform: scale(1.05); box-shadow:0 10px 28px rgba(0,0,0,.22) }
 
-/* Glow guide button */
+/* Guided glow buttons on petals (unchanged behavior) */
 .pulse-btn{
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
   width:22px; height:22px; border-radius:50%;
@@ -87,7 +88,7 @@ body{
   100%{ box-shadow:0 0 0 0 rgba(0,0,0,0) }
 }
 
-/* Petal gradients */
+/* Petal gradients (for dots) */
 .g1{ background:linear-gradient(135deg,#ff6b6b,#ffb199) }
 .g2{ background:linear-gradient(135deg,#4facfe,#00f2fe) }
 .g3{ background:linear-gradient(135deg,#43e97b,#38f9d7) }
@@ -96,16 +97,6 @@ body{
 .g6{ background:linear-gradient(135deg,#fbc2eb,#a6c1ee) }
 .g7{ background:linear-gradient(135deg,#ffecd2,#fcb69f) }
 .g8{ background:linear-gradient(135deg,#cfd9df,#e2ebf0) }
-
-/* Gradient text support (used for Work/About/Contact when cycling) */
-@supports ((-webkit-background-clip: text) or (background-clip: text)){
-  .gradient-text{
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-  }
-}
 
 /* ==== Backgrounds ==== */
 body::before{
@@ -162,12 +153,13 @@ body.reading::before{
 
 /* ==== Overlay (section view) ==== */
 .overlay{
-  position: fixed; inset: 0; z-index: 5; /* overlay below petal-layer (z:7) */
+  position: fixed; inset: 0; z-index: 5; /* overlay below lines (6) and petal-layer (7) */
   background:#fff;
   clip-path: circle(var(--clipR, 0px) at var(--clipX, 50%) var(--clipY, 50%));
   transition: clip-path 800ms var(--ease);
   will-change: clip-path;
   pointer-events: none; opacity: 0;
+  color:var(--text);
 }
 .overlay.visible{ pointer-events: auto; opacity: 1; }
 .overlay.open{ clip-path: circle(150vmax at 50% 50%); }
@@ -178,47 +170,30 @@ body.reading::before{
   width:38px; height:38px; border-radius:50%;
   border:1px solid #e6e6e6; background:#fff; cursor:pointer;
   box-shadow:0 10px 24px rgba(0,0,0,.08);
+  color:#777;
 }
 .close-btn:hover{ transform:translateY(-1px) }
-.close-btn:focus-visible{ outline:2px solid rgba(0,0,0,.4) }
+.close-btn:focus-visible{ outline:2px solid rgba(0,0,0,.2) }
 
 .section-header{
   display:flex; align-items:center; justify-content:center;
   flex-direction:column;
-  padding:36px 16px 12px;
+  padding:56px 16px 14px; /* moved down a bit */
 }
 .section-title{
   font-size: clamp(1.6rem, 4vw, 3rem); font-weight:700; line-height:1.1;
-  background-image: linear-gradient(135deg,#ff6b6b,#ffb199);
+  margin-top: 4px; /* extra space from perimeter orbits */
+  color:var(--text);
 }
 
+/* Content area */
 .section-content{
   flex:1; max-width: min(100%, 1100px);
   margin: 0 auto; padding: 16px clamp(16px, 4vw, 40px) 40px;
-  overflow:auto;
+  overflow:auto; color:var(--text);
 }
 
-/* NEW: chip nav */
-.chip-nav{ display:flex; gap:10px; justify-content:center; padding:10px 0 16px }
-.chip{
-  --chip-bg: #fff; --chip-brd:#ececec;
-  padding:.55rem .9rem; border-radius:999px;
-  border:1px solid var(--chip-brd); background:var(--chip-bg);
-  font: 600 0.9rem/1 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  box-shadow:0 4px 12px rgba(0,0,0,.06);
-  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
-  cursor:pointer;
-}
-.chip:hover{ transform:translateY(-1px); box-shadow:0 8px 20px rgba(0,0,0,.08) }
-.chip.active{
-  color:#000;
-  border-color: transparent;
-  background: linear-gradient(#fff,#fff) padding-box,
-              var(--chip-grad, linear-gradient(135deg,#bbb,#eee)) border-box;
-  border:1px solid transparent;
-}
-
-/* NEW: glass surfaces for content */
+/* Glass surfaces */
 .section-content > section{
   background: rgba(255,255,255,0.7);
   backdrop-filter: blur(8px);
@@ -229,13 +204,17 @@ body.reading::before{
   margin: clamp(10px, 2.2vw, 18px) auto;
   max-width: min(100%, 920px);
 }
-.section-content h2, .section-content p{ margin: 0 0 .6em }
-.section-content p{ color:#30343a; line-height:1.55 }
+.section-content h2, .section-content p{ margin: 0 0 .6em; color: var(--text) }
+
+/* Lines canvas (above overlay, below petals) */
+.link-canvas{
+  position: fixed; inset: 0; z-index: 6; pointer-events:none;
+}
 
 /* Topmost petal layer for transitions/section mode */
 .petal-layer{
   position: fixed; inset: 0;
-  z-index: 7;                 /* above overlay */
+  z-index: 7;                 /* above overlay & lines */
   pointer-events: none;       /* don't block clicks while reading */
 }
 
