@@ -47,7 +47,7 @@ body{
   z-index:3;
   transition:opacity .6s var(--ease), filter .6s var(--ease), transform .2s var(--ease);
   background:none; border:0; padding:0; cursor:pointer;
-  color:#111;
+  color:#bfc3c9; /* light gray for "Samuel Goldman" on load */
 }
 .center-label:focus-visible{ outline: 2px solid rgba(0,0,0,.4); border-radius:8px }
 
@@ -94,24 +94,13 @@ body{
 .g7{ background:linear-gradient(135deg,#ffecd2,#fcb69f) }
 .g8{ background:linear-gradient(135deg,#cfd9df,#e2ebf0) }
 
-/* Gradient text support */
+/* Gradient text support (used later for Work/About/Contact) */
 @supports ((-webkit-background-clip: text) or (background-clip: text)){
   .gradient-text{
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
-  }
-  .title-gradient{
-    background-image: linear-gradient(
-      135deg,
-      #ff6b6b, #ffb199,
-      #4facfe, #00f2fe,
-      #43e97b, #38f9d7,
-      #ff9a9e, #fad0c4,
-      #fddb92, #d1fdff,
-      #fbc2eb, #a6c1ee
-    );
   }
 }
 
@@ -205,12 +194,12 @@ body.reading::before{
   pointer-events: none;       /* don't block clicks while reading */
 }
 
-/* When petals are inside petal-layer, anchor to (0,0) and keep transform-based motion */
+/* When petals are in petal-layer, anchor to (0,0) and animate with transform */
 .petal.perimeter{
   position: absolute;
   top: 0;
   left: 0;
-  will-change: transform;     /* we animate with transform */
+  will-change: transform;
 }
 
 /* Keyframes */

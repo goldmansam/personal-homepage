@@ -23,10 +23,9 @@ let unlocked = false;
    Geometry helpers
 ============================= */
 function sizes(){
-  const clusterSize = cluster.getBoundingClientRect().width;
   const centerR = centerEl.getBoundingClientRect().width / 2;
   const petalR = petals[0].getBoundingClientRect().width / 2;
-  return { clusterSize, centerR, petalR };
+  return { centerR, petalR };
 }
 let { centerR, petalR } = sizes();
 
@@ -97,7 +96,7 @@ function handlePetalClick(i){
       p.removeEventListener('transitionend', onEnd);
       unlocked = true;
       setActiveButton(-1);
-      centerLabel.classList.remove('title-gradient');
+      // Start motion and label cycle
       startCenterOrbit();
       startLabelCycle();
     };
@@ -124,6 +123,7 @@ const grads = [
 let labelIdx = 0, labelTimer = null;
 
 function cycleOnce(){
+  // switch to gradient text while cycling section choices
   centerLabel.classList.add('gradient-text');
   centerLabel.style.filter = 'blur(6px)';
   centerLabel.style.opacity = 0;
@@ -149,7 +149,7 @@ function distanceOnRectEdge(x, y){
   if (Math.abs(y - m) <= eps)              return Math.max(0, Math.min(W, x - m));                        // top
   if (Math.abs(x - (w - m)) <= eps)        return W + Math.max(0, Math.min(H, y - m));                    // right
   if (Math.abs(y - (h - m)) <= eps)        return W + H + Math.max(0, Math.min(W, (W - (x - m))));        // bottom
-  /* left */                                return W + H + W + Math.max(0, Math.min(H, (H - (y - m))));    // left
+  return W + H + W + Math.max(0, Math.min(H, (H - (y - m))));
 }
 function rayToRectEdge(x, y, vx, vy){
   const { w, h, m } = viewportRect();
@@ -196,7 +196,7 @@ function hideOverlay(){
   }, 820);
 }
 
-/* Move petals into the top layer BEFORE overlay opens (keep transform coords) */
+/* Promote petals to top layer BEFORE overlay opens (keep transform coords) */
 function promotePetalsBeforeOverlay(){
   const c = centerEl.getBoundingClientRect();
   const cx = c.left + c.width/2, cy = c.top + c.height/2;
