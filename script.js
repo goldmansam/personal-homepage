@@ -34,9 +34,7 @@ function petalTransform(radius, angle){
 }
 function setPetalAt(p, radius, angle){ p.style.transform = petalTransform(radius, angle); }
 
-function viewportRect(){
-  return { w: window.innerWidth, h: window.innerHeight, m: 24 };
-}
+function viewportRect(){ return { w: window.innerWidth, h: window.innerHeight, m: 24 }; }
 
 /* =============================
    Home placement & center orbit
@@ -71,10 +69,7 @@ function startCenterOrbit(){
   }
   if (!centerOrbitRAF) centerOrbitRAF = requestAnimationFrame(loop);
 }
-function stopCenterOrbit(){
-  if (centerOrbitRAF) cancelAnimationFrame(centerOrbitRAF);
-  centerOrbitRAF = null;
-}
+function stopCenterOrbit(){ if (centerOrbitRAF) cancelAnimationFrame(centerOrbitRAF); centerOrbitRAF = null; }
 
 /* =============================
    Guided petal clicks (unlock)
@@ -134,26 +129,22 @@ function cycleOnce(){
     centerLabel.style.opacity = 1;
   }, 420);
 }
-function startLabelCycle(){
-  if (labelTimer) return;
-  cycleOnce();
-  labelTimer = setInterval(cycleOnce, 5000);
-}
+function startLabelCycle(){ if (!labelTimer){ cycleOnce(); labelTimer = setInterval(cycleOnce, 5000); } }
 function stopLabelCycle(){ if (labelTimer) clearInterval(labelTimer), labelTimer = null; }
 
 /* =============================
-   Perimeter geometry helpers
+   Perimeter helpers
 ============================= */
-// distance along rectangle (top->right->bottom->left clockwise) for a point on the edge
+// distance along rectangle (clockwise) for a point on the edge
 function distanceOnRectEdge(x, y){
   const { w, h, m } = viewportRect();
   const W = w - 2*m, H = h - 2*m;
   const L = 2*(W + H);
   const eps = 1.0;
-  if (Math.abs(y - m) <= eps)              return Math.max(0, Math.min(W, x - m));                       // top
-  if (Math.abs(x - (w - m)) <= eps)        return W + Math.max(0, Math.min(H, y - m));                   // right
-  if (Math.abs(y - (h - m)) <= eps)        return W + H + Math.max(0, Math.min(W, (W - (x - m))));       // bottom
-  /* left */                                return W + H + W + Math.max(0, Math.min(H, (H - (y - m))));   // left
+  if (Math.abs(y - m) <= eps)              return Math.max(0, Math.min(W, x - m));                        // top
+  if (Math.abs(x - (w - m)) <= eps)        return W + Math.max(0, Math.min(H, y - m));                    // right
+  if (Math.abs(y - (h - m)) <= eps)        return W + H + Math.max(0, Math.min(W, (W - (x - m))));        // bottom
+  /* left */                                return W + H + W + Math.max(0, Math.min(H, (H - (y - m))));    // left
 }
 
 // ray from (x,y) in direction (vx,vy) → first intersection with inset rectangle
@@ -162,22 +153,10 @@ function rayToRectEdge(x, y, vx, vy){
   const left = m, right = w - m, top = m, bottom = h - m;
   const cands = [];
 
-  if (vy < 0){ // top
-    const s = (top - y) / vy; const X = x + vx*s;
-    if (s > 0 && X >= left && X <= right) cands.push({ s, x:X, y:top });
-  }
-  if (vy > 0){ // bottom
-    const s = (bottom - y) / vy; const X = x + vx*s;
-    if (s > 0 && X >= left && X <= right) cands.push({ s, x:X, y:bottom });
-  }
-  if (vx > 0){ // right
-    const s = (right - x) / vx; const Y = y + vy*s;
-    if (s > 0 && Y >= top && Y <= bottom) cands.push({ s, x:right, y:Y });
-  }
-  if (vx < 0){ // left
-    const s = (left - x) / vx; const Y = y + vy*s;
-    if (s > 0 && Y >= top && Y <= bottom) cands.push({ s, x:left, y:Y });
-  }
+  if (vy < 0){ const s = (top - y) / vy;    const X = x + vx*s; if (s > 0 && X >= left && X <= right) cands.push({ s, x:X, y:top }); }
+  if (vy > 0){ const s = (bottom - y) / vy; const X = x + vx*s; if (s > 0 && X >= left && X <= right) cands.push({ s, x:X, y:bottom }); }
+  if (vx > 0){ const s = (right - x) / vx;  const Y = y + vy*s; if (s > 0 && Y >= top && Y <= bottom) cands.push({ s, x:right, y:Y }); }
+  if (vx < 0){ const s = (left - x) / vx;   const Y = y + vy*s; if (s > 0 && Y >= top && Y <= bottom) cands.push({ s, x:left,  y:Y }); }
 
   if (!cands.length) return { x, y };
   cands.sort((a,b) => a.s - b.s);
@@ -202,14 +181,14 @@ function showOverlay(){
   document.body.classList.add('reading');
   overlay.classList.add('visible');
   setOverlayClipToCenter();
-  requestAnimationFrame(() => overlay.classList.add('open')); // animate now
+  requestAnimationFrame(() => overlay.classList.add('open'));
   overlay.setAttribute('aria-hidden', 'false');
   centerLabel.setAttribute('aria-expanded', 'true');
 }
 
 function hideOverlay(){
   overlay.classList.remove('open');
-  setOverlayClipToCenter(); // animate back to center
+  setOverlayClipToCenter();
   centerLabel.setAttribute('aria-expanded', 'false');
   setTimeout(() => {
     overlay.classList.remove('visible');
@@ -218,41 +197,46 @@ function hideOverlay(){
   }, 820);
 }
 
-// Move each petal along the tangent of its current orbit to the nearest edge, simultaneously with overlay open
-function tangentialDockPetals(){
-  const now = performance.now();
-  // snapshot center screen position
+/* NEW: promote petals ABOVE overlay BEFORE we show it */
+function promotePetalsBeforeOverlay(){
   const c = centerEl.getBoundingClientRect();
   const cx = c.left + c.width/2, cy = c.top + c.height/2;
+  const now = performance.now();
 
   petals.forEach((p, i) => {
-    // compute current angle & radius at this instant
-    let a = baseAngles[i];
-    let r = ringRadius;
-    if (unlocked && orbitStart){
-      const t = (now - orbitStart)/1000;
-      a = baseAngles[i] + omegas[i]*t;
-      r = orbitR[i];
-    }
-    // current screen position
+    const a = unlocked && orbitStart ? baseAngles[i] + omegas[i]*((now - orbitStart)/1000) : baseAngles[i];
+    const r = unlocked ? orbitR[i] : ringRadius;
+    const x = cx + Math.cos(a)*r;
+    const y = cy + Math.sin(a)*r;
+    p.classList.add('perimeter'); // gives z-index: 6 and fixed positioning
+    p.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`; // exactly where it is now
+  });
+}
+
+/* Move along tangent to nearest edge (runs after promotion + overlay open starts) */
+function tangentialDockPetals(){
+  const c = centerEl.getBoundingClientRect();
+  const cx = c.left + c.width/2, cy = c.top + c.height/2;
+  const now = performance.now();
+
+  petals.forEach((p, i) => {
+    const a = unlocked && orbitStart ? baseAngles[i] + omegas[i]*((now - orbitStart)/1000) : baseAngles[i];
+    const r = unlocked ? orbitR[i] : ringRadius;
+
     const x = cx + Math.cos(a)*r;
     const y = cy + Math.sin(a)*r;
 
-    // unit tangent in direction of motion (d/dt of circle param) = (-sin(a), cos(a))
+    // tangent direction (-sin(a), cos(a))
     const tx = -Math.sin(a);
     const ty =  Math.cos(a);
 
-    // find intersection with inset rectangle
     const { x: ex, y: ey } = rayToRectEdge(x, y, tx, ty);
 
-    // set as fixed-perimeter petal and animate to edge point
-    p.classList.add('perimeter');
-    p.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+    // animate to edge (they're already in .perimeter with current transform)
     requestAnimationFrame(() => {
       p.style.transform = `translate(${ex}px, ${ey}px) translate(-50%, -50%)`;
     });
 
-    // record perimeter distance to continue orbit seamlessly
     rectDistances[i] = distanceOnRectEdge(ex, ey);
   });
 }
@@ -266,7 +250,6 @@ function startPerimeterOrbit(){
     petals.forEach((p, i) => {
       rectDistances[i] += pxSpeeds[i] * dt;
       const { w, h, m } = viewportRect();
-      // convert distance to x,y
       const W = w - 2*m, H = h - 2*m, L = 2*(W + H);
       let d = ((rectDistances[i] % L) + L) % L;
 
@@ -302,19 +285,23 @@ function openSection(which){
   if (state !== 'home') return;
   state = 'opening';
 
-  // freeze orbits but compute angles from current time
+  // Stop home motion/cycle first (but we still read current angles)
   stopCenterOrbit();
   stopLabelCycle();
 
-  // section title/content selection
   const normalized = which || (['work','about','contact'].includes(centerLabel.textContent.trim().toLowerCase()) ? centerLabel.textContent.trim().toLowerCase() : 'work');
   setSectionUI(normalized);
 
-  // overlay expansion + tangential docking happen together
-  showOverlay();
-  tangentialDockPetals();
+  // 1) Promote petals ABOVE overlay at their CURRENT positions
+  promotePetalsBeforeOverlay();
 
-  // once docked, begin perimeter orbit
+  // 2) Begin overlay expansion AND tangential docking in the same paint
+  showOverlay();
+  requestAnimationFrame(() => {
+    tangentialDockPetals();
+  });
+
+  // 3) After docking, kick off perimeter orbit & focus content
   setTimeout(() => {
     startPerimeterOrbit();
     sectionContent.focus({ preventScroll: true });
@@ -327,7 +314,7 @@ function closeSection(){
   state = 'home';
   stopPerimeterOrbit();
 
-  // move petals from perimeter back to the ring around center (screen coords animation)
+  // Move petals back to the center ring (screen coords), then restore to cluster coords
   const c = centerEl.getBoundingClientRect();
   const cx = c.left + c.width/2, cy = c.top + c.height/2;
 
@@ -338,14 +325,13 @@ function closeSection(){
     p.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
   });
 
-  // then switch back to cluster coords and resume center orbit + label cycling
   setTimeout(() => {
     petals.forEach((p, i) => {
       p.classList.remove('perimeter');
       setPetalAt(p, ringRadius, baseAngles[i]);
     });
     if (unlocked) startCenterOrbit();
-    startLabelCycle(); // <-- ensure cycle resumes after closing
+    startLabelCycle(); // ensure cycling resumes after close
   }, 900);
 
   hideOverlay();
@@ -418,9 +404,9 @@ window.addEventListener('resize', () => {
     petals.forEach((p, i) => setPetalAt(p, ringRadius, baseAngles[i]));
   } else if (state === 'section'){
     // snap petals to new perimeter positions to avoid drift
+    const { w, h, m } = viewportRect();
+    const W = w - 2*m, H = h - 2*m, L = 2*(W + H);
     petals.forEach((p, i) => {
-      const { w, h, m } = viewportRect();
-      const W = w - 2*m, H = h - 2*m, L = 2*(W + H);
       let d = ((rectDistances[i] % L) + L) % L;
       let x, y;
       if (d <= W){ x = m + d; y = m; }
