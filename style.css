@@ -1,11 +1,10 @@
 :root{
-  --cluster-size: 720px;      /* home canvas for the orbits */
-  --center-size: 280px;       /* large center circle */
-  --petal-size: 84px;         /* surrounding circles */
-  --gap: 10px;                /* gap from center to resting petals */
+  --cluster-size: 720px;
+  --center-size: 280px;
+  --petal-size: 84px;
+  --gap: 10px;
   --ease: cubic-bezier(0.25, 0.8, 0.25, 1);
 
-  /* Shared color for orbit rings + optional title color override */
   --orbit-rgb: 0,0,0;
   --orbit-line-alpha: .05;
   --orbit-text-alpha: .75;
@@ -22,14 +21,14 @@ body{
   overflow:hidden;
 }
 
-/* Main cluster sits above background layers */
+/* Main cluster */
 .cluster{
   position:relative;
   width:var(--cluster-size); height:var(--cluster-size);
   z-index: 2;
 }
 
-/* White center (no border) */
+/* Center circle */
 .center{
   position:absolute; top:50%; left:50%;
   width:var(--center-size); height:var(--center-size);
@@ -39,7 +38,7 @@ body{
   z-index:2; pointer-events:none;
 }
 
-/* Center label is a <button> for accessibility */
+/* Center label button */
 .center-label{
   position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
   width:calc(var(--center-size) - 36px); text-align:center;
@@ -48,7 +47,7 @@ body{
   z-index:3;
   transition:opacity .6s var(--ease), filter .6s var(--ease), transform .2s var(--ease);
   background:none; border:0; padding:0; cursor:pointer;
-  color:#111; /* fallback if gradient text unsupported */
+  color:#111;
 }
 .center-label:focus-visible{ outline: 2px solid rgba(0,0,0,.4); border-radius:8px }
 
@@ -103,7 +102,6 @@ body{
     -webkit-text-fill-color: transparent;
     color: transparent;
   }
-  /* Initial name gradient (petal palette) */
   .title-gradient{
     background-image: linear-gradient(
       135deg,
@@ -115,16 +113,9 @@ body{
       #fbc2eb, #a6c1ee
     );
   }
-  /* Optional: tie title color to ring color instead of the rainbow
-  .title-gradient{
-    background-image: linear-gradient(0deg,
-      rgba(var(--orbit-rgb), var(--orbit-text-alpha)),
-      rgba(var(--orbit-rgb), var(--orbit-text-alpha))
-    );
-  } */
 }
 
-/* ==== Vibrant Aurora + Orbit Rings background ==== */
+/* ==== Backgrounds ==== */
 body::before{
   content:""; position: fixed; inset: -20% -10%;
   pointer-events: none; z-index: 0;
@@ -137,7 +128,6 @@ body::before{
   animation: auroraDrift 34s ease-in-out infinite alternate, auroraHue 90s linear infinite;
 }
 body.reading::before{
-  /* Dim slightly in section mode for readability */
   filter: blur(60px) saturate(100%) brightness(0.96);
 }
 
@@ -150,7 +140,7 @@ body.reading::before{
   animation: ringsSpin 90s linear infinite;
 }
 
-/* Enclosing ring around the whole layout */
+/* Enclosing ring */
 .enclosing-ring{
   position: fixed; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
@@ -161,7 +151,7 @@ body.reading::before{
   animation: rotate-ring 30s linear infinite;
 }
 
-/* Starfield + sparks layer */
+/* Starfield + sparks */
 .starry-background{ position: fixed; inset: 0; z-index: 1; pointer-events: none; }
 .star{
   position: absolute; width: 2px; height: 2px; border-radius: 50%;
@@ -174,19 +164,17 @@ body.reading::before{
   pointer-events:none; animation: fly 5s linear forwards;
 }
 
-/* Overlay (section view) — expands from center using clip-path */
+/* ==== Overlay (section view) ==== */
 .overlay{
-  position: fixed; inset: 0; z-index: 5; /* below petals-on-perimeter (z 6) */
+  position: fixed; inset: 0; z-index: 5;
   background:#fff;
   clip-path: circle(var(--clipR, 0px) at var(--clipX, 50%) var(--clipY, 50%));
   transition: clip-path 800ms var(--ease);
   will-change: clip-path;
-  pointer-events: none; opacity: 0; /* inert until opened */
+  pointer-events: none; opacity: 0;
 }
 .overlay.visible{ pointer-events: auto; opacity: 1; }
-.overlay.open{
-  clip-path: circle(150vmax at 50% 50%);
-}
+.overlay.open{ clip-path: circle(150vmax at 50% 50%); }
 
 .overlay-inner{ position:relative; width:100%; height:100%; display:flex; flex-direction:column; }
 .close-btn{
@@ -210,13 +198,13 @@ body.reading::before{
   overflow:auto;
 }
 
-/* Petals switch to fixed + perimeter layer when overlay opens */
+/* Petals become fixed when on perimeter */
 .petal.perimeter{
-  position: fixed; top:0; left:0; z-index: 6; /* above overlay */
+  position: fixed; top:0; left:0; z-index: 6;
   will-change: transform;
 }
 
-/* Animations & motion prefs */
+/* Keyframes */
 @keyframes rotate-ring { from { transform: translate(-50%,-50%) rotate(0deg) } to { transform: translate(-50%,-50%) rotate(360deg) } }
 @keyframes auroraDrift { from { transform: translate3d(-3%,-2%,0) rotate(0.3deg) } to { transform: translate3d(3%,2%,0) rotate(-0.3deg) } }
 @keyframes auroraHue   { from { filter: blur(60px) saturate(160%) hue-rotate(0deg) } to { filter: blur(60px) saturate(160%) hue-rotate(360deg) } }
