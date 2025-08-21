@@ -2,7 +2,7 @@
    DOM
 ============================= */
 const cluster       = document.getElementById('cluster');
-const petalLayer    = document.getElementById('petalLayer'); // NEW top layer
+const petalLayer    = document.getElementById('petalLayer'); // top layer
 const centerEl      = document.getElementById('center');
 const centerLabel   = document.getElementById('centerLabel');
 const petals        = Array.from(document.querySelectorAll('.petal'));
@@ -17,7 +17,6 @@ const sectionContent= document.getElementById('sectionContent');
    State
 ============================= */
 let state = 'home'; // 'home' | 'opening' | 'section'
-let currentSection = null;
 let unlocked = false;
 
 /* =============================
@@ -29,7 +28,7 @@ function sizes(){
   const petalR = petals[0].getBoundingClientRect().width / 2;
   return { clusterSize, centerR, petalR };
 }
-let { clusterSize, centerR, petalR } = sizes();
+let { centerR, petalR } = sizes();
 
 const gap = 10;
 let ringRadius = centerR + petalR + gap;
@@ -41,7 +40,7 @@ function petalTransform(radius, angle){
 }
 function setPetalAt(p, radius, angle){ p.style.transform = petalTransform(radius, angle); }
 
-function viewportRect(){ return { w: window.innerWidth, h: window.innerHeight, m: 24 }; }
+function viewportRect(){ return { w: innerWidth, h: innerHeight, m: 24 }; }
 
 /* =============================
    Home placement & center orbit
@@ -140,17 +139,17 @@ function startLabelCycle(){ if (!labelTimer){ cycleOnce(); labelTimer = setInter
 function stopLabelCycle(){ if (labelTimer) clearInterval(labelTimer), labelTimer = null; }
 
 /* =============================
-   Perimeter helpers
+   Perimeter helpers (transform-based)
 ============================= */
 function distanceOnRectEdge(x, y){
   const { w, h, m } = viewportRect();
   const W = w - 2*m, H = h - 2*m;
   const L = 2*(W + H);
   const eps = 1.0;
-  if (Math.abs(y - m) <= eps)              return Math.max(0, Math.min(W, x - m));
-  if (Math.abs(x - (w - m)) <= eps)        return W + Math.max(0, Math.min(H, y - m));
-  if (Math.abs(y - (h - m)) <= eps)        return W + H + Math.max(0, Math.min(W, (W - (x - m))));
-  return W + H + W + Math.max(0, Math.min(H, (H - (y - m))));
+  if (Math.abs(y - m) <= eps)              return Math.max(0, Math.min(W, x - m));                        // top
+  if (Math.abs(x - (w - m)) <= eps)        return W + Math.max(0, Math.min(H, y - m));                    // right
+  if (Math.abs(y - (h - m)) <= eps)        return W + H + Math.max(0, Math.min(W, (W - (x - m))));        // bottom
+  /* left */                                return W + H + W + Math.max(0, Math.min(H, (H - (y - m))));    // left
 }
 function rayToRectEdge(x, y, vx, vy){
   const { w, h, m } = viewportRect();
@@ -178,7 +177,6 @@ function setOverlayClipToCenter(){
   overlay.style.setProperty('--clipY', (c.top  + c.height/2) + 'px');
   overlay.style.setProperty('--clipR', (c.width/2) + 'px');
 }
-
 function showOverlay(){
   document.body.classList.add('reading');
   overlay.classList.add('visible');
@@ -198,7 +196,7 @@ function hideOverlay(){
   }, 820);
 }
 
-/* Move petals into the top petal layer BEFORE overlay opens */
+/* Move petals into the top layer BEFORE overlay opens (keep transform coords) */
 function promotePetalsBeforeOverlay(){
   const c = centerEl.getBoundingClientRect();
   const cx = c.left + c.width/2, cy = c.top + c.height/2;
@@ -211,16 +209,15 @@ function promotePetalsBeforeOverlay(){
     const y = cy + Math.sin(a)*r;
 
     if (p.parentElement !== petalLayer) petalLayer.appendChild(p);
-    p.classList.add('perimeter');  // makes it absolute inside petal-layer (z:7)
+    p.classList.add('perimeter');  // absolute inside petal-layer (top/left 0)
     p.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
   });
 
-  // force a reflow so the browser paints this state before we open overlay
-  // (prevents overlay from flashing above them)
+  // Force paint before opening overlay to ensure layering
   void petalLayer.offsetHeight;
 }
 
-/* Then shoot each along its tangent to the nearest edge */
+/* Shoot each along its tangent to the nearest edge (transform-based) */
 function tangentialDockPetals(){
   const c = centerEl.getBoundingClientRect();
   const cx = c.left + c.width/2, cy = c.top + c.height/2;
@@ -232,8 +229,7 @@ function tangentialDockPetals(){
 
     const x = cx + Math.cos(a)*r;
     const y = cy + Math.sin(a)*r;
-
-    const tx = -Math.sin(a), ty = Math.cos(a); // tangent direction
+    const tx = -Math.sin(a), ty = Math.cos(a); // tangent
 
     const { x: ex, y: ey } = rayToRectEdge(x, y, tx, ty);
 
@@ -273,12 +269,11 @@ function startPerimeterOrbit(){
 function stopPerimeterOrbit(){ if (perimeterRAF) cancelAnimationFrame(perimeterRAF); perimeterRAF = null; }
 
 /* =============================
-   Open/Close section
+   Section wiring
 ============================= */
 function setSectionUI(which){
-  currentSection = which;
   const ix = { work:0, about:1, contact:2 }[which] ?? 0;
-  sectionTitle.textContent = names[ix];
+  sectionTitle.textContent = ['Work','About','Contact'][ix];
   sectionTitle.style.backgroundImage = grads[ix];
   [...sectionContent.querySelectorAll('section')].forEach(s => {
     s.hidden = (s.dataset.section !== which);
@@ -292,21 +287,22 @@ function openSection(which){
   stopCenterOrbit();
   stopLabelCycle();
 
-  const normalized = which || (['work','about','contact'].includes(centerLabel.textContent.trim().toLowerCase()) ? centerLabel.textContent.trim().toLowerCase() : 'work');
+  const t = centerLabel.textContent.trim().toLowerCase();
+  const normalized = which || (['work','about','contact'].includes(t) ? t : 'work');
   setSectionUI(normalized);
 
-  // 1) Move petals to the top layer at their current positions
+  // 1) Move petals to top layer at current positions (above overlay)
   promotePetalsBeforeOverlay();
 
-  // 2) Start overlay open & tangential docking in the next frame
+  // 2) Start overlay expand + tangential docking together
   showOverlay();
   requestAnimationFrame(() => {
-    requestAnimationFrame(() => { // double rAF ensures proper paint order
+    requestAnimationFrame(() => { // ensure paint order
       tangentialDockPetals();
     });
   });
 
-  // 3) Begin perimeter orbit after docking transition finishes
+  // 3) Begin perimeter orbit after docking animation
   setTimeout(() => {
     startPerimeterOrbit();
     sectionContent.focus({ preventScroll: true });
@@ -319,7 +315,7 @@ function closeSection(){
   state = 'home';
   stopPerimeterOrbit();
 
-  // animate petals from perimeter back to ring (screen coords)
+  // Animate petals from perimeter back to ring (screen coords via transform)
   const c = centerEl.getBoundingClientRect();
   const cx = c.left + c.width/2, cy = c.top + c.height/2;
 
@@ -330,7 +326,7 @@ function closeSection(){
     p.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
   });
 
-  // after transition, move petals back into the cluster & resume home orbit/cycle
+  // After transition, put petals back into cluster and resume home mode
   setTimeout(() => {
     petals.forEach((p, i) => {
       if (p.parentElement !== cluster) cluster.appendChild(p);
@@ -338,7 +334,7 @@ function closeSection(){
       setPetalAt(p, ringRadius, baseAngles[i]);
     });
     if (unlocked) startCenterOrbit();
-    startLabelCycle(); // resume choices
+    startLabelCycle(); // resume cycling after close
   }, 900);
 
   hideOverlay();
@@ -360,8 +356,8 @@ function applyHash(){
   const h = (location.hash || '').replace('#','').toLowerCase();
   if (h === 'work' || h === 'about' || h === 'contact') openSection(h);
 }
-window.addEventListener('hashchange', applyHash);
-window.addEventListener('load', applyHash);
+addEventListener('hashchange', applyHash);
+addEventListener('load', applyHash);
 
 /* =============================
    Background: stars + sparks
@@ -387,8 +383,8 @@ function launchSpark(){
   if (!starHost) return;
   const sp = document.createElement('div');
   sp.className = 'spark';
-  const startX = Math.random()*window.innerWidth*0.3;
-  const startY = window.innerHeight*(0.65 + Math.random()*0.35);
+  const startX = Math.random()*innerWidth*0.3;
+  const startY = innerHeight*(0.65 + Math.random()*0.35);
   sp.style.left = `${startX}px`;
   sp.style.top  = `${startY}px`;
   const dur = 4 + Math.random()*3; // 4–7s
@@ -402,15 +398,15 @@ setInterval(launchSpark, 1400);
 /* =============================
    Resize handling
 ============================= */
-window.addEventListener('resize', () => {
-  ({ clusterSize, centerR, petalR } = sizes());
+addEventListener('resize', () => {
+  ({ centerR, petalR } = sizes());
   ringRadius = centerR + petalR + gap;
   orbitR = outwardOffsets.map(off => ringRadius + off);
 
   if (state === 'home'){
     petals.forEach((p, i) => setPetalAt(p, ringRadius, baseAngles[i]));
   } else if (state === 'section'){
-    // snap petals to new perimeter positions to avoid drift
+    // keep them on the correct perimeter spot after resize
     const { w, h, m } = viewportRect();
     const W = w - 2*m, H = h - 2*m, L = 2*(W + H);
     petals.forEach((p, i) => {
@@ -420,7 +416,7 @@ window.addEventListener('resize', () => {
       else if (d <= W + H){ x = m + W; y = m + (d - W); }
       else if (d <= W + H + W){ x = m + (W - (d - W - H)); y = m + H; }
       else { x = m; y = m + (H - (d - W - H - W)); }
-      p.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+      petals[i].style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
     });
   }
 });
