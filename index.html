@@ -7,20 +7,22 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Starry layer (stars + sparks live inside here) -->
+  <!-- Starry layer (stars + sparks) -->
   <div class="starry-background" aria-hidden="true"></div>
 
   <!-- Enclosing outer ring -->
   <div class="enclosing-ring" aria-hidden="true"></div>
 
-  <!-- Main interactive cluster -->
+  <!-- Main interactive cluster (home) -->
   <div class="cluster" id="cluster">
     <div class="center" id="center" aria-hidden="true"></div>
 
-    <!-- Start with your name as gradient text -->
-    <div class="center-label gradient-text title-gradient" id="centerLabel">Samuel Goldman</div>
+    <!-- Center label cycles Work/About/Contact (clickable to open) -->
+    <button class="center-label gradient-text title-gradient" id="centerLabel" aria-haspopup="dialog" aria-expanded="false">
+      Samuel Goldman
+    </button>
 
-    <!-- Petals with glow buttons (click order guided clockwise) -->
+    <!-- Petals with glow buttons (guided clockwise) -->
     <div class="petal" data-i="0"><div class="dot g1"></div><button class="pulse-btn" aria-label="Start"></button></div>
     <div class="petal" data-i="1"><div class="dot g2"></div><button class="pulse-btn" aria-label="Next"></button></div>
     <div class="petal" data-i="2"><div class="dot g3"></div><button class="pulse-btn" aria-label="Next"></button></div>
@@ -29,6 +31,29 @@
     <div class="petal" data-i="5"><div class="dot g6"></div><button class="pulse-btn" aria-label="Next"></button></div>
     <div class="petal" data-i="6"><div class="dot g7"></div><button class="pulse-btn" aria-label="Next"></button></div>
     <div class="petal" data-i="7"><div class="dot g8"></div><button class="pulse-btn" aria-label="Next"></button></div>
+  </div>
+
+  <!-- Fullscreen overlay panel (section view) -->
+  <div id="overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="sectionTitle" aria-hidden="true">
+    <div class="overlay-inner">
+      <button class="close-btn" id="closeBtn" aria-label="Close">✕</button>
+      <header class="section-header">
+        <h1 id="sectionTitle" class="gradient-text section-title">Section</h1>
+      </header>
+
+      <main class="section-content" id="sectionContent" tabindex="-1">
+        <!-- Placeholder structure so you're ready to add content later -->
+        <section data-section="work" hidden>
+          <!-- TODO: add your Work content here (text/photos/mix) -->
+        </section>
+        <section data-section="about" hidden>
+          <!-- TODO: add your About content here -->
+        </section>
+        <section data-section="contact" hidden>
+          <!-- TODO: add your Contact content here -->
+        </section>
+      </main>
+    </div>
   </div>
 
   <script defer src="script.js"></script>

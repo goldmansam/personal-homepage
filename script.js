@@ -1,13 +1,30 @@
-/* ---------- Existing interactive system ---------- */
-const cluster = document.getElementById('cluster');
-const centerEl = document.getElementById('center');
-const petals = Array.from(document.querySelectorAll('.petal'));
-const centerLabel = document.getElementById('centerLabel');
+/* =============================
+   Setup & geometry
+============================= */
+const cluster      = document.getElementById('cluster');
+const centerEl     = document.getElementById('center');
+const centerLabel  = document.getElementById('centerLabel');
+const petals       = Array.from(document.querySelectorAll('.petal'));
+const buttons      = petals.map(p => p.querySelector('.pulse-btn'));
 
-// geometry
-const clusterSize = cluster.getBoundingClientRect().width; // ~720
-const centerR = centerEl.getBoundingClientRect().width / 2;   // ~140
-const petalR  = petals[0].getBoundingClientRect().width / 2;  // ~42
+const overlay      = document.getElementById('overlay');
+const closeBtn     = document.getElementById('closeBtn');
+const sectionTitle = document.getElementById('sectionTitle');
+const sectionContent = document.getElementById('sectionContent');
+
+let state = 'home'; // 'home' | 'opening' | 'section'
+let currentSection = null;
+let unlocked = false;
+
+// sizes from layout
+function sizes(){
+  const clusterSize = cluster.getBoundingClientRect().width;
+  const centerR = centerEl.getBoundingClientRect().width / 2;
+  const petalR = petals[0].getBoundingClientRect().width / 2;
+  return { clusterSize, centerR, petalR };
+}
+let { clusterSize, centerR, petalR } = sizes();
+
 const gap = 10;
 const ringRadius = centerR + petalR + gap;
 
@@ -19,7 +36,9 @@ function petalTransform(radius, angle){
 }
 function setPetalAt(p, radius, angle){ p.style.transform = petalTransform(radius, angle); }
 
-// place evenly, start at top (-90°), clockwise
+/* =============================
+   Home placement & unlock orbit
+============================= */
 const n = petals.length;
 const baseAngles = new Array(n);
 petals.forEach((p, i) => {
@@ -29,7 +48,7 @@ petals.forEach((p, i) => {
   p.style.opacity = 1;
 });
 
-// varied outward distances and orbit speeds
+// outward distances (ring → orbit), and center-orbit speeds
 const outwardOffsets = [60, 85, 110, 75, 100, 90, 120, 70];
 const orbitR = outwardOffsets.map(off => ringRadius + off);
 
@@ -38,54 +57,30 @@ const baseOmega = (baseRPM * Math.PI*2) / 60; // rad/s
 const speedFactors = [0.65, 0.8, 0.95, 1.15, 1.35, 0.72, 1.25, 1.0];
 const omegas = speedFactors.map(f => baseOmega * f);
 
-// glow button guidance (clockwise)
-const buttons = petals.map(p => p.querySelector('.pulse-btn'));
-let targetIndex = 0;
-function setActiveButton(idx){ buttons.forEach((b, i) => b.classList.toggle('active', i === idx)); }
-setActiveButton(targetIndex);
-
-let unlocked = false, rafId = null, startTime = null;
-
-function startOrbit(){
-  startTime = performance.now();
+let centerOrbitRAF = null, orbitStart = null;
+function startCenterOrbit(){
+  orbitStart = performance.now();
   function loop(now){
-    const t = (now - startTime)/1000;
+    const t = (now - orbitStart)/1000;
     for (let i=0; i<petals.length; i++){
       const a = baseAngles[i] + omegas[i]*t;
       petals[i].style.transform = petalTransform(orbitR[i], a);
     }
-    rafId = requestAnimationFrame(loop);
+    centerOrbitRAF = requestAnimationFrame(loop);
   }
-  if (!rafId) rafId = requestAnimationFrame(loop);
-
-  // switch from title gradient to cycling section labels
-  centerLabel.classList.remove('title-gradient');
-
-  // center label cycle: Work → About → Contact
-  const names = ['Work','About','Contact'];
-  const grads = [
-    'linear-gradient(135deg,#ff6b6b,#ffb199)',
-    'linear-gradient(135deg,#4facfe,#00f2fe)',
-    'linear-gradient(135deg,#43e97b,#38f9d7)'
-  ];
-  let idx = 0;
-
-  function cycle(){
-    centerLabel.classList.add('gradient-text');
-    centerLabel.style.filter = 'blur(6px)';
-    centerLabel.style.opacity = 0;
-    setTimeout(() => {
-      centerLabel.textContent = names[idx % names.length];
-      centerLabel.style.backgroundImage = grads[idx % grads.length];
-      idx++;
-      centerLabel.style.filter = 'blur(0px)';
-      centerLabel.style.opacity = 1;
-    }, 420);
-  }
-  cycle();
-  setInterval(cycle, 5000);
+  if (!centerOrbitRAF) centerOrbitRAF = requestAnimationFrame(loop);
+}
+function stopCenterOrbit(){
+  if (centerOrbitRAF) cancelAnimationFrame(centerOrbitRAF);
+  centerOrbitRAF = null;
 }
 
+// glow guidance (clockwise)
+let targetIndex = 0;
+function setActiveButton(idx){ buttons.forEach((b, i) => b.classList.toggle('active', i === idx)); }
+setActiveButton(targetIndex);
+
+// After last petal expanded → unlock
 function handlePetalClick(i){
   if (unlocked || i !== targetIndex) return;
   const p = petals[i];
@@ -98,8 +93,16 @@ function handlePetalClick(i){
       if (e.propertyName !== 'transform') return;
       p.removeEventListener('transitionend', onEnd);
       unlocked = true;
-      setActiveButton(-1);
-      startOrbit();
+      setActiveButton(-1); // hide glow
+
+      // switch center to cycling labels
+      centerLabel.classList.remove('title-gradient');
+
+      // begin center orbit
+      startCenterOrbit();
+
+      // start label cycle
+      startLabelCycle();
     };
     p.addEventListener('transitionend', onEnd, { once: true });
   } else {
@@ -107,32 +110,244 @@ function handlePetalClick(i){
     setActiveButton(targetIndex);
   }
 }
-
-// clicks: petal OR the glow button both work
 petals.forEach((p, i) => {
   p.addEventListener('click', () => handlePetalClick(i));
   buttons[i].addEventListener('click', (ev) => { ev.stopPropagation(); handlePetalClick(i); });
 });
 
-// pause/resume orbits when tab hidden
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden){
-    if (rafId) cancelAnimationFrame(rafId), rafId = null;
-  } else if (unlocked && !rafId){
-    startOrbit();
+/* =============================
+   Center label cycling (home)
+============================= */
+const names = ['Work','About','Contact'];
+const grads = [
+  'linear-gradient(135deg,#ff6b6b,#ffb199)',
+  'linear-gradient(135deg,#4facfe,#00f2fe)',
+  'linear-gradient(135deg,#43e97b,#38f9d7)'
+];
+let labelIdx = 0, labelTimer = null;
+function cycleOnce(){
+  centerLabel.classList.add('gradient-text');
+  centerLabel.style.filter = 'blur(6px)';
+  centerLabel.style.opacity = 0;
+  setTimeout(() => {
+    centerLabel.textContent = names[labelIdx % names.length];
+    centerLabel.style.backgroundImage = grads[labelIdx % grads.length];
+    labelIdx++;
+    centerLabel.style.filter = 'blur(0px)';
+    centerLabel.style.opacity = 1;
+  }, 420);
+}
+function startLabelCycle(){
+  cycleOnce();
+  labelTimer = setInterval(cycleOnce, 5000);
+}
+function stopLabelCycle(){ if (labelTimer) clearInterval(labelTimer), labelTimer = null; }
+
+/* =============================
+   Section overlay + perimeter orbit
+============================= */
+let perimeterRAF = null;
+const margin = 24; // distance from viewport edge
+
+function viewportRect(){
+  return { w: window.innerWidth, h: window.innerHeight, m: margin };
+}
+
+// map distance along rectangle perimeter to (x,y)
+function rectPointByDistance(d){
+  const { w, h, m } = viewportRect();
+  const W = w - 2*m, H = h - 2*m, L = 2*(W + H);
+  d = ((d % L) + L) % L;
+
+  if (d <= W)                 return { x: m + d,     y: m };            // top
+  if (d <= W + H)             return { x: m + W,     y: m + (d - W) };  // right
+  if (d <= W + H + W)         return { x: m + (W - (d - W - H)), y: m + H }; // bottom
+  /* left */                  return { x: m,         y: m + (H - (d - W - H - W)) };
+}
+
+const pxSpeeds = speedFactors.map(f => 140 * f); // px/sec along edges
+let rectDistances = new Array(n).fill(0);        // starting distances around perimeter
+
+function dockPetalsToPerimeter(){
+  // assign evenly spaced starting distances
+  const { w, h, m } = viewportRect();
+  const W = w - 2*m, H = h - 2*m, L = 2*(W + H);
+  rectDistances = rectDistances.map((_, i) => (i/n) * L);
+
+  // move petals from current screen position to their docking points
+  petals.forEach((p, i) => {
+    const r = p.getBoundingClientRect();
+    const cx = r.left + r.width/2, cy = r.top + r.height/2;
+    p.classList.add('perimeter');
+    // place at current
+    p.style.transform = `translate(${cx}px, ${cy}px) translate(-50%, -50%)`;
+  });
+
+  // next frame → move to target points (smooth via CSS transition)
+  requestAnimationFrame(() => {
+    petals.forEach((p, i) => {
+      const { x, y } = rectPointByDistance(rectDistances[i]);
+      p.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+    });
+  });
+}
+
+function startPerimeterOrbit(){
+  let last = performance.now();
+  function loop(now){
+    const dt = Math.min(0.05, (now - last)/1000); // clamp
+    last = now;
+
+    petals.forEach((p, i) => {
+      rectDistances[i] += pxSpeeds[i] * dt;
+      const { x, y } = rectPointByDistance(rectDistances[i]);
+      p.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+    });
+
+    perimeterRAF = requestAnimationFrame(loop);
   }
+  if (!perimeterRAF) perimeterRAF = requestAnimationFrame(loop);
+}
+function stopPerimeterOrbit(){ if (perimeterRAF) cancelAnimationFrame(perimeterRAF); perimeterRAF = null; }
+
+/* =============================
+   Open/Close section
+============================= */
+function setOverlayClipToCenter(){
+  const c = centerEl.getBoundingClientRect();
+  const clipX = (c.left + c.width/2) + 'px';
+  const clipY = (c.top  + c.height/2) + 'px';
+  const clipR = (c.width/2) + 'px';
+  overlay.style.setProperty('--clipX', clipX);
+  overlay.style.setProperty('--clipY', clipY);
+  overlay.style.setProperty('--clipR', clipR);
+}
+
+function showOverlay(){
+  document.body.classList.add('reading');
+  overlay.classList.add('visible');
+  setOverlayClipToCenter();
+  // allow center label to fade a bit
+  centerLabel.style.transform = 'scale(0.98)';
+  // open on next frame so clip-path animates
+  requestAnimationFrame(() => overlay.classList.add('open'));
+  overlay.setAttribute('aria-hidden', 'false');
+  centerLabel.setAttribute('aria-expanded', 'true');
+}
+function hideOverlay(){
+  overlay.classList.remove('open');
+  setOverlayClipToCenter(); // animate back
+  centerLabel.setAttribute('aria-expanded', 'false');
+  // after transition, hide
+  setTimeout(() => {
+    overlay.classList.remove('visible');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('reading');
+    centerLabel.style.transform = '';
+  }, 820);
+}
+
+function setSectionUI(which){
+  currentSection = which;
+  const ix = { work:0, about:1, contact:2 }[which] ?? 0;
+  sectionTitle.textContent = names[ix];
+  sectionTitle.style.backgroundImage = grads[ix];
+
+  // show only chosen section container
+  [...sectionContent.querySelectorAll('section')].forEach(s => {
+    s.hidden = (s.dataset.section !== which);
+  });
+}
+
+function openSection(which){
+  if (state !== 'home') return;
+  state = 'opening';
+  stopCenterOrbit();
+  stopLabelCycle();
+
+  // Freeze current label text to the chosen one if needed
+  const currentText = centerLabel.textContent.trim().toLowerCase();
+  const normalized = which || (['work','about','contact'].includes(currentText) ? currentText : 'work');
+
+  setSectionUI(normalized);
+  showOverlay();
+  // dock petals and then start perimeter orbit
+  dockPetalsToPerimeter();
+
+  // start orbit a bit after docking (matches CSS transition ~850ms)
+  setTimeout(() => {
+    startPerimeterOrbit();
+    // focus heading for accessibility
+    sectionContent.focus({ preventScroll: true });
+    state = 'section';
+  }, 900);
+}
+
+function closeSection(){
+  if (state !== 'section') return;
+  state = 'home';
+  stopPerimeterOrbit();
+
+  // move petals back to ring around center
+  petals.forEach((p, i) => {
+    // compute target screen position of ring point
+    const c = centerEl.getBoundingClientRect();
+    const cx = c.left + c.width/2, cy = c.top + c.height/2;
+    const a = baseAngles[i];
+    const x = cx + Math.cos(a) * ringRadius;
+    const y = cy + Math.sin(a) * ringRadius;
+    p.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+  });
+
+  // after transition, restore to cluster coords
+  setTimeout(() => {
+    petals.forEach((p, i) => {
+      p.classList.remove('perimeter');
+      setPetalAt(p, ringRadius, baseAngles[i]);
+    });
+    // resume home orbits if we were unlocked
+    if (unlocked) startCenterOrbit();
+  }, 900);
+
+  hideOverlay();
+}
+
+/* =============================
+   Events
+============================= */
+centerLabel.addEventListener('click', () => {
+  // clicking always opens; if not unlocked yet, we still honor the open
+  const plain = centerLabel.textContent.trim().toLowerCase();
+  const which = (plain === 'work' || plain === 'about' || plain === 'contact') ? plain : 'work';
+  openSection(which);
 });
 
-/* ---------- NEW: starfield + spark trails ---------- */
-const starHost = document.querySelector('.starry-background');
+closeBtn.addEventListener('click', closeSection);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && state === 'section') closeSection();
+});
 
-function createStars(count = 120){
+/* URL hash support: /#work, /#about, /#contact */
+function applyHash(){
+  const h = (location.hash || '').replace('#','').toLowerCase();
+  if (h === 'work' || h === 'about' || h === 'contact'){
+    openSection(h);
+  }
+}
+window.addEventListener('hashchange', applyHash);
+window.addEventListener('load', applyHash);
+
+/* =============================
+   Background: stars + sparks
+============================= */
+const starHost = document.querySelector('.starry-background');
+function createStars(count = 140){
   if (!starHost) return;
   const frag = document.createDocumentFragment();
   for (let i = 0; i < count; i++) {
     const s = document.createElement('div');
     s.className = 'star';
-    const size = Math.random() * 2.2 + 0.8;   // 0.8px – 3px
+    const size = Math.random() * 2.2 + 0.8;
     s.style.width = `${size}px`;
     s.style.height = `${size}px`;
     s.style.top = `${Math.random()*100}%`;
@@ -142,26 +357,39 @@ function createStars(count = 120){
   }
   starHost.appendChild(frag);
 }
-
 function launchSpark(){
   if (!starHost) return;
   const sp = document.createElement('div');
   sp.className = 'spark';
-
-  // start near bottom-left-ish with randomness
-  const startX = Math.random()*window.innerWidth*0.3;  // left 0–30vw
-  const startY = window.innerHeight*(0.65 + Math.random()*0.35); // lower 65–100vh
+  const startX = Math.random()*window.innerWidth*0.3;
+  const startY = window.innerHeight*(0.65 + Math.random()*0.35);
   sp.style.left = `${startX}px`;
   sp.style.top  = `${startY}px`;
-
-  // vary duration a bit
   const dur = 4 + Math.random()*3; // 4–7s
   sp.style.animationDuration = `${dur}s`;
-
   starHost.appendChild(sp);
   setTimeout(() => sp.remove(), dur*1000 + 100);
 }
-
-// initialize
 createStars(140);
 setInterval(launchSpark, 1400);
+
+/* =============================
+   Resize handling (keep math correct)
+============================= */
+window.addEventListener('resize', () => {
+  ({ clusterSize, centerR, petalR } = sizes());
+  // update ring radius
+  const rr = centerR + petalR + gap;
+  for (let i=0; i<petals.length; i++){
+    if (state === 'home'){
+      setPetalAt(petals[i], rr, baseAngles[i]);
+    }
+  }
+  if (state === 'section'){
+    // snap petals to new perimeter positions
+    petals.forEach((p, i) => {
+      const { x, y } = rectPointByDistance(rectDistances[i]);
+      p.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+    });
+  }
+});
