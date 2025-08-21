@@ -206,7 +206,9 @@ body.reading::before{
 }
 /* When petals are inside petal-layer, use absolute positioning relative to it */
 .petal.perimeter{
-  position: absolute;         /* absolute inside fixed petal-layer */
+  position: absolute;
+  top: 0;              /* <-- add this */
+  left: 0;             /* <-- and this */
   will-change: transform;
 }
 
