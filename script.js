@@ -13,8 +13,8 @@ const closeBtn      = document.getElementById('closeBtn');
 const sectionTitle  = document.getElementById('sectionTitle');
 const sectionContent= document.getElementById('sectionContent');
 
-const linkCanvas    = document.getElementById('linkCanvas');
-const ctx           = linkCanvas.getContext('2d');
+/* NEW: chips */
+const chips = document.querySelectorAll('.chip-nav .chip');
 
 /* =============================
    State
@@ -45,19 +45,6 @@ function setPetalAt(p, radius, angle){ p.style.transform = petalTransform(radius
 function viewportRect(){ return { w: innerWidth, h: innerHeight, m: 24 }; }
 
 /* =============================
-   Canvas sizing
-============================= */
-function resizeCanvas(){
-  const dpr = Math.max(1, window.devicePixelRatio || 1);
-  linkCanvas.width  = Math.floor(innerWidth * dpr);
-  linkCanvas.height = Math.floor(innerHeight * dpr);
-  linkCanvas.style.width  = innerWidth + 'px';
-  linkCanvas.style.height = innerHeight + 'px';
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-}
-resizeCanvas();
-
-/* =============================
    Home placement & center orbit
 ============================= */
 const n = petals.length;
@@ -77,32 +64,15 @@ const baseOmega = (baseRPM * Math.PI*2) / 60; // rad/s
 const speedFactors = [0.65, 0.8, 0.95, 1.15, 1.35, 0.72, 1.25, 1.0];
 const omegas = speedFactors.map(f => baseOmega * f);
 
-/* Representative colors for lines, matching petal vibes */
-const lineColors = [
-  '#ff7c7c', '#5ec3ff', '#43e97b', '#ffa3b0',
-  '#f6d56a', '#c8a8ff', '#f8c29f', '#d7e1ea'
-];
-
 let centerOrbitRAF = null, orbitStart = null;
 function startCenterOrbit(){
   orbitStart = performance.now();
   function loop(now){
     const t = (now - orbitStart)/1000;
-
-    // compute positions relative to cluster center
-    const c = centerEl.getBoundingClientRect();
-    const cx = c.left + c.width/2, cy = c.top + c.height/2;
-
-    const pts = new Array(n);
     for (let i=0; i<petals.length; i++){
       const a = baseAngles[i] + omegas[i]*t;
-      const x = cx + Math.cos(a)*orbitR[i];
-      const y = cy + Math.sin(a)*orbitR[i];
-      petals[i].style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
-      pts[i] = {x,y};
+      petals[i].style.transform = petalTransform(orbitR[i], a);
     }
-
-    drawConnections(pts); // gradient polygon lines
     centerOrbitRAF = requestAnimationFrame(loop);
   }
   if (!centerOrbitRAF) centerOrbitRAF = requestAnimationFrame(loop);
@@ -144,16 +114,24 @@ petals.forEach((p, i) => {
 });
 
 /* =============================
-   Center label cycling (no gradients; keep light gray)
+   Center label cycling
 ============================= */
 const names = ['Work','About','Contact'];
+const grads = [
+  'linear-gradient(135deg,#ff6b6b,#ffb199)',
+  'linear-gradient(135deg,#4facfe,#00f2fe)',
+  'linear-gradient(135deg,#43e97b,#38f9d7)'
+];
 let labelIdx = 0, labelTimer = null;
 
 function cycleOnce(){
+  // switch to gradient text while cycling section choices
+  centerLabel.classList.add('gradient-text');
   centerLabel.style.filter = 'blur(6px)';
   centerLabel.style.opacity = 0;
   setTimeout(() => {
     centerLabel.textContent = names[labelIdx % names.length];
+    centerLabel.style.backgroundImage = grads[labelIdx % grads.length];
     labelIdx++;
     centerLabel.style.filter = 'blur(0px)';
     centerLabel.style.opacity = 1;
@@ -220,7 +198,7 @@ function hideOverlay(){
   }, 820);
 }
 
-/* Move petals into top layer BEFORE overlay opens, keep transform coords */
+/* Promote petals to top layer BEFORE overlay opens (keep transform coords) */
 function promotePetalsBeforeOverlay(){
   const c = centerEl.getBoundingClientRect();
   const cx = c.left + c.width/2, cy = c.top + c.height/2;
@@ -233,14 +211,15 @@ function promotePetalsBeforeOverlay(){
     const y = cy + Math.sin(a)*r;
 
     if (p.parentElement !== petalLayer) petalLayer.appendChild(p);
-    p.classList.add('perimeter');
+    p.classList.add('perimeter');  // absolute inside petal-layer (top/left 0)
     p.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
   });
 
+  // Force paint before opening overlay to ensure layering
   void petalLayer.offsetHeight;
 }
 
-/* Shoot each along its tangent to the nearest edge */
+/* Shoot each along its tangent to the nearest edge (transform-based) */
 function tangentialDockPetals(){
   const c = centerEl.getBoundingClientRect();
   const cx = c.left + c.width/2, cy = c.top + c.height/2;
@@ -269,12 +248,10 @@ function startPerimeterOrbit(){
     const dt = Math.min(0.05, (now - last)/1000);
     last = now;
 
-    const { w, h, m } = viewportRect();
-    const W = w - 2*m, H = h - 2*m, L = 2*(W + H);
-
-    const pts = new Array(n);
     petals.forEach((p, i) => {
       rectDistances[i] += pxSpeeds[i] * dt;
+      const { w, h, m } = viewportRect();
+      const W = w - 2*m, H = h - 2*m, L = 2*(W + H);
       let d = ((rectDistances[i] % L) + L) % L;
 
       let x, y;
@@ -284,10 +261,8 @@ function startPerimeterOrbit(){
       else { x = m; y = m + (H - (d - W - H - W)); }
 
       p.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
-      pts[i] = {x,y};
     });
 
-    drawConnections(pts); // draw on top of overlay (low opacity)
     perimeterRAF = requestAnimationFrame(loop);
   }
   if (!perimeterRAF) perimeterRAF = requestAnimationFrame(loop);
@@ -295,16 +270,41 @@ function startPerimeterOrbit(){
 function stopPerimeterOrbit(){ if (perimeterRAF) cancelAnimationFrame(perimeterRAF); perimeterRAF = null; }
 
 /* =============================
-   Section wiring (no gradient titles)
+   Section wiring
 ============================= */
 function setSectionUI(which){
   const ix = { work:0, about:1, contact:2 }[which] ?? 0;
   sectionTitle.textContent = ['Work','About','Contact'][ix];
+  sectionTitle.style.backgroundImage = grads[ix];
 
+  // show the matching <section>
   [...sectionContent.querySelectorAll('section')].forEach(s => {
     s.hidden = (s.dataset.section !== which);
   });
+
+  // sync chips UI
+  syncChips(ix);
 }
+
+/* NEW: chip syncing + click handling */
+function syncChips(whichIndex){
+  chips.forEach((c,i)=>{
+    const active = i === whichIndex;
+    c.classList.toggle('active', active);
+    c.setAttribute('aria-selected', active ? 'true' : 'false');
+    c.style.setProperty('--chip-grad', grads[i] || grads[0]);
+  });
+}
+chips.forEach((btn)=>{
+  btn.addEventListener('click', ()=>{
+    const which = btn.dataset.go; // 'work'|'about'|'contact'
+    if (state === 'section') {
+      setSectionUI(which);
+    } else {
+      openSection(which);
+    }
+  });
+});
 
 function openSection(which){
   if (state !== 'home') return;
@@ -313,16 +313,23 @@ function openSection(which){
   stopCenterOrbit();
   stopLabelCycle();
 
+  // default to current label if valid
   const t = centerLabel.textContent.trim().toLowerCase();
   const normalized = which || (['work','about','contact'].includes(t) ? t : 'work');
   setSectionUI(normalized);
 
+  // 1) Move petals to top layer at current positions (above overlay)
   promotePetalsBeforeOverlay();
+
+  // 2) Start overlay expand + tangential docking together
   showOverlay();
   requestAnimationFrame(() => {
-    requestAnimationFrame(() => { tangentialDockPetals(); });
+    requestAnimationFrame(() => { // ensure paint order
+      tangentialDockPetals();
+    });
   });
 
+  // 3) Begin perimeter orbit after docking animation
   setTimeout(() => {
     startPerimeterOrbit();
     sectionContent.focus({ preventScroll: true });
@@ -335,6 +342,7 @@ function closeSection(){
   state = 'home';
   stopPerimeterOrbit();
 
+  // Animate petals from perimeter back to ring (screen coords via transform)
   const c = centerEl.getBoundingClientRect();
   const cx = c.left + c.width/2, cy = c.top + c.height/2;
 
@@ -345,6 +353,7 @@ function closeSection(){
     p.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
   });
 
+  // After transition, put petals back into cluster and resume home mode
   setTimeout(() => {
     petals.forEach((p, i) => {
       if (p.parentElement !== cluster) cluster.appendChild(p);
@@ -352,7 +361,7 @@ function closeSection(){
       setPetalAt(p, ringRadius, baseAngles[i]);
     });
     if (unlocked) startCenterOrbit();
-    startLabelCycle();
+    startLabelCycle(); // resume cycling after close
   }, 900);
 
   hideOverlay();
@@ -369,6 +378,11 @@ centerLabel.addEventListener('click', () => {
 closeBtn.addEventListener('click', closeSection);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && state === 'section') closeSection();
+  // quick section switch while reading
+  if (state === 'section' && (e.key==='1'||e.key==='2'||e.key==='3')) {
+    const map = { '1':'work', '2':'about', '3':'contact' };
+    setSectionUI(map[e.key]);
+  }
 });
 
 /* URL hash support */
@@ -416,39 +430,9 @@ createStars(140);
 setInterval(launchSpark, 1400);
 
 /* =============================
-   Lines rendering (gradient polygon)
-============================= */
-function drawConnections(points){
-  if (!points || points.length !== n) return;
-
-  // clear
-  ctx.clearRect(0, 0, innerWidth, innerHeight);
-
-  // ring connections (neighbor to neighbor)
-  ctx.lineWidth = 1.25;
-  ctx.globalAlpha = 0.28; // low opacity so content remains readable
-
-  for (let i = 0; i < n; i++){
-    const j = (i + 1) % n;
-    const a = points[i], b = points[j];
-    const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
-    grad.addColorStop(0, lineColors[i % lineColors.length]);
-    grad.addColorStop(1, lineColors[j % lineColors.length]);
-    ctx.strokeStyle = grad;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-  }
-
-  ctx.globalAlpha = 1; // reset
-}
-
-/* =============================
    Resize handling
 ============================= */
 addEventListener('resize', () => {
-  resizeCanvas();
   ({ centerR, petalR } = sizes());
   ringRadius = centerR + petalR + gap;
   orbitR = outwardOffsets.map(off => ringRadius + off);
@@ -456,9 +440,9 @@ addEventListener('resize', () => {
   if (state === 'home'){
     petals.forEach((p, i) => setPetalAt(p, ringRadius, baseAngles[i]));
   } else if (state === 'section'){
+    // keep them on the correct perimeter spot after resize
     const { w, h, m } = viewportRect();
     const W = w - 2*m, H = h - 2*m, L = 2*(W + H);
-    const pts = new Array(n);
     petals.forEach((p, i) => {
       let d = ((rectDistances[i] % L) + L) % L;
       let x, y;
@@ -467,8 +451,6 @@ addEventListener('resize', () => {
       else if (d <= W + H + W){ x = m + (W - (d - W - H)); y = m + H; }
       else { x = m; y = m + (H - (d - W - H - W)); }
       p.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
-      pts[i] = {x,y};
     });
-    drawConnections(pts);
   }
 });
