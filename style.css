@@ -26,6 +26,7 @@ body{
   position:relative;
   width:var(--cluster-size); height:var(--cluster-size);
   z-index: 2;
+  animation: clusterIn .7s ease-out both;
 }
 
 /* Center circle */
@@ -64,7 +65,9 @@ body{
   width:100%; height:100%; border-radius:50%;
   box-shadow:0 6px 18px rgba(0,0,0,.16);
   opacity:.82; mix-blend-mode:multiply;
+  transition: transform .25s ease, box-shadow .25s ease; /* micro-interaction */
 }
+.petal:hover .dot{ transform: scale(1.05); box-shadow:0 10px 28px rgba(0,0,0,.22) }
 
 /* Glow guide button */
 .pulse-btn{
@@ -94,7 +97,7 @@ body{
 .g7{ background:linear-gradient(135deg,#ffecd2,#fcb69f) }
 .g8{ background:linear-gradient(135deg,#cfd9df,#e2ebf0) }
 
-/* Gradient text support (used later for Work/About/Contact) */
+/* Gradient text support (used for Work/About/Contact when cycling) */
 @supports ((-webkit-background-clip: text) or (background-clip: text)){
   .gradient-text{
     -webkit-background-clip: text;
@@ -115,6 +118,10 @@ body::before{
     radial-gradient(40% 35% at 40% 65%, rgba(255,210,112,0.18), transparent 60%);
   filter: blur(60px) saturate(160%);
   animation: auroraDrift 34s ease-in-out infinite alternate, auroraHue 90s linear infinite;
+}
+body::after{ /* subtle vignette for focus */
+  content:""; position: fixed; inset:0; pointer-events:none; z-index:0;
+  background: radial-gradient(120% 90% at 50% 55%, rgba(0,0,0,0) 60%, rgba(0,0,0,.06) 100%);
 }
 body.reading::before{
   filter: blur(60px) saturate(100%) brightness(0.96);
@@ -175,7 +182,11 @@ body.reading::before{
 .close-btn:hover{ transform:translateY(-1px) }
 .close-btn:focus-visible{ outline:2px solid rgba(0,0,0,.4) }
 
-.section-header{ display:flex; align-items:center; justify-content:center; padding:36px 16px 12px; }
+.section-header{
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column;
+  padding:36px 16px 12px;
+}
 .section-title{
   font-size: clamp(1.6rem, 4vw, 3rem); font-weight:700; line-height:1.1;
   background-image: linear-gradient(135deg,#ff6b6b,#ffb199);
@@ -186,6 +197,40 @@ body.reading::before{
   margin: 0 auto; padding: 16px clamp(16px, 4vw, 40px) 40px;
   overflow:auto;
 }
+
+/* NEW: chip nav */
+.chip-nav{ display:flex; gap:10px; justify-content:center; padding:10px 0 16px }
+.chip{
+  --chip-bg: #fff; --chip-brd:#ececec;
+  padding:.55rem .9rem; border-radius:999px;
+  border:1px solid var(--chip-brd); background:var(--chip-bg);
+  font: 600 0.9rem/1 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  box-shadow:0 4px 12px rgba(0,0,0,.06);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+  cursor:pointer;
+}
+.chip:hover{ transform:translateY(-1px); box-shadow:0 8px 20px rgba(0,0,0,.08) }
+.chip.active{
+  color:#000;
+  border-color: transparent;
+  background: linear-gradient(#fff,#fff) padding-box,
+              var(--chip-grad, linear-gradient(135deg,#bbb,#eee)) border-box;
+  border:1px solid transparent;
+}
+
+/* NEW: glass surfaces for content */
+.section-content > section{
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: 18px;
+  padding: clamp(16px, 3vw, 28px);
+  box-shadow: 0 18px 48px rgba(0,0,0,.08), 0 2px 0 rgba(255,255,255,.6) inset;
+  margin: clamp(10px, 2.2vw, 18px) auto;
+  max-width: min(100%, 920px);
+}
+.section-content h2, .section-content p{ margin: 0 0 .6em }
+.section-content p{ color:#30343a; line-height:1.55 }
 
 /* Topmost petal layer for transitions/section mode */
 .petal-layer{
@@ -209,8 +254,9 @@ body.reading::before{
 @keyframes ringsSpin   { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
 @keyframes twinkle     { 0%,100% { opacity:.25; transform: scale(0.6) } 50% { opacity:.95; transform: scale(1.25) } }
 @keyframes fly         { 0% { transform: translate(0,0) scale(0.6); opacity:0 } 10%{ opacity:1 } 100%{ transform: translate(100vw,-100vh) scale(1.6); opacity:0 } }
+@keyframes clusterIn   { from{ transform: scale(.98); opacity:0 } to{ transform: scale(1); opacity:1 } }
 
 @media (prefers-reduced-motion: reduce){
   .petal,.pulse-btn{ transition:none !important; animation:none !important }
-  body::before, .cluster::before, .enclosing-ring, .overlay { animation: none !important; transition: none !important; }
+  body::before, body::after, .cluster::before, .enclosing-ring, .overlay { animation: none !important; transition: none !important; }
 }

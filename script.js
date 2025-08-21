@@ -2,7 +2,7 @@
    DOM
 ============================= */
 const cluster       = document.getElementById('cluster');
-const petalLayer    = document.getElementById('petalLayer'); // top layer
+const petalLayer    = document.getElementById('petalLayer');
 const centerEl      = document.getElementById('center');
 const centerLabel   = document.getElementById('centerLabel');
 const petals        = Array.from(document.querySelectorAll('.petal'));
@@ -12,6 +12,9 @@ const overlay       = document.getElementById('overlay');
 const closeBtn      = document.getElementById('closeBtn');
 const sectionTitle  = document.getElementById('sectionTitle');
 const sectionContent= document.getElementById('sectionContent');
+
+/* NEW: chips */
+const chips = document.querySelectorAll('.chip-nav .chip');
 
 /* =============================
    State
@@ -96,7 +99,6 @@ function handlePetalClick(i){
       p.removeEventListener('transitionend', onEnd);
       unlocked = true;
       setActiveButton(-1);
-      // Start motion and label cycle
       startCenterOrbit();
       startLabelCycle();
     };
@@ -221,10 +223,9 @@ function promotePetalsBeforeOverlay(){
 function tangentialDockPetals(){
   const c = centerEl.getBoundingClientRect();
   const cx = c.left + c.width/2, cy = c.top + c.height/2;
-  const now = performance.now();
 
   petals.forEach((p, i) => {
-    const a = unlocked && orbitStart ? baseAngles[i] + omegas[i]*((now - orbitStart)/1000) : baseAngles[i];
+    const a = unlocked && orbitStart ? baseAngles[i] + omegas[i]*((performance.now() - orbitStart)/1000) : baseAngles[i];
     const r = unlocked ? orbitR[i] : ringRadius;
 
     const x = cx + Math.cos(a)*r;
@@ -275,10 +276,35 @@ function setSectionUI(which){
   const ix = { work:0, about:1, contact:2 }[which] ?? 0;
   sectionTitle.textContent = ['Work','About','Contact'][ix];
   sectionTitle.style.backgroundImage = grads[ix];
+
+  // show the matching <section>
   [...sectionContent.querySelectorAll('section')].forEach(s => {
     s.hidden = (s.dataset.section !== which);
   });
+
+  // sync chips UI
+  syncChips(ix);
 }
+
+/* NEW: chip syncing + click handling */
+function syncChips(whichIndex){
+  chips.forEach((c,i)=>{
+    const active = i === whichIndex;
+    c.classList.toggle('active', active);
+    c.setAttribute('aria-selected', active ? 'true' : 'false');
+    c.style.setProperty('--chip-grad', grads[i] || grads[0]);
+  });
+}
+chips.forEach((btn)=>{
+  btn.addEventListener('click', ()=>{
+    const which = btn.dataset.go; // 'work'|'about'|'contact'
+    if (state === 'section') {
+      setSectionUI(which);
+    } else {
+      openSection(which);
+    }
+  });
+});
 
 function openSection(which){
   if (state !== 'home') return;
@@ -287,6 +313,7 @@ function openSection(which){
   stopCenterOrbit();
   stopLabelCycle();
 
+  // default to current label if valid
   const t = centerLabel.textContent.trim().toLowerCase();
   const normalized = which || (['work','about','contact'].includes(t) ? t : 'work');
   setSectionUI(normalized);
@@ -349,7 +376,14 @@ centerLabel.addEventListener('click', () => {
   openSection(which);
 });
 closeBtn.addEventListener('click', closeSection);
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && state === 'section') closeSection(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && state === 'section') closeSection();
+  // quick section switch while reading
+  if (state === 'section' && (e.key==='1'||e.key==='2'||e.key==='3')) {
+    const map = { '1':'work', '2':'about', '3':'contact' };
+    setSectionUI(map[e.key]);
+  }
+});
 
 /* URL hash support */
 function applyHash(){
@@ -416,7 +450,7 @@ addEventListener('resize', () => {
       else if (d <= W + H){ x = m + W; y = m + (d - W); }
       else if (d <= W + H + W){ x = m + (W - (d - W - H)); y = m + H; }
       else { x = m; y = m + (H - (d - W - H - W)); }
-      petals[i].style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+      p.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
     });
   }
 });

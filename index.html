@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Samuel Goldman</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- tiny white-circle favicon + theme color -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23ffffff'/%3E%3C/svg%3E">
+  <meta name="theme-color" content="#ffffff">
 </head>
 <body>
   <!-- Starry layer (stars + sparks) -->
@@ -17,7 +20,7 @@
   <div class="cluster" id="cluster">
     <div class="center" id="center" aria-hidden="true"></div>
 
-    <!-- Center label (light gray on load; cycles later) -->
+    <!-- Center label (light gray on load; cycles to Work/About/Contact once unlocked) -->
     <button class="center-label" id="centerLabel" aria-haspopup="dialog" aria-expanded="false">
       Samuel Goldman
     </button>
@@ -37,15 +40,34 @@
   <div id="overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="sectionTitle" aria-hidden="true">
     <div class="overlay-inner">
       <button class="close-btn" id="closeBtn" aria-label="Close">✕</button>
+
       <header class="section-header">
         <h1 id="sectionTitle" class="gradient-text section-title">Section</h1>
+
+        <!-- NEW: section chip nav -->
+        <nav class="chip-nav" role="tablist" aria-label="Sections">
+          <button class="chip active" data-go="work" role="tab" aria-selected="true">Work</button>
+          <button class="chip" data-go="about" role="tab" aria-selected="false">About</button>
+          <button class="chip" data-go="contact" role="tab" aria-selected="false">Contact</button>
+        </nav>
       </header>
 
       <main class="section-content" id="sectionContent" tabindex="-1">
-        <!-- Ready for your content later -->
-        <section data-section="work" hidden></section>
-        <section data-section="about" hidden></section>
-        <section data-section="contact" hidden></section>
+        <!-- Your content goes here (styled as glass cards) -->
+        <section data-section="work" hidden>
+          <h2>Selected Projects</h2>
+          <p>Drop images, case studies, or links here.</p>
+        </section>
+
+        <section data-section="about" hidden>
+          <h2>About</h2>
+          <p>Bio, approach, and what you’re exploring.</p>
+        </section>
+
+        <section data-section="contact" hidden>
+          <h2>Contact</h2>
+          <p>Ways to reach you (email, socials), or a form.</p>
+        </section>
       </main>
     </div>
   </div>
